@@ -1,0 +1,19 @@
+{
+  "name": "codexaac-backend",
+  "version": "1.0.0",
+  "description": "CodexAAC Backend - Prisma setup",
+  "scripts": {
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "prisma:push": "prisma db push",
+    "prisma:pull": "prisma db pull"
+  },
+  "devDependencies": {
+    "@prisma/client": "^5.7.1",
+    "prisma": "^5.7.1"
+  }
+}
+
+
+

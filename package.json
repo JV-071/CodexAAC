@@ -1,0 +1,25 @@
+{
+  "name": "codexaac",
+  "version": "1.0.0",
+  "description": "Projeto full-stack CodexAAC",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && make run",
+    "install:frontend": "cd frontend && npm install",
+    "install:backend": "cd backend && go mod download",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && make build",
+    "db:push": "prisma db push",
+    "db:pull": "prisma db pull",
+    "generate": "prisma generate"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "prisma": "^7.0.0",
+    "tsx": "^4.19.2"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.0.0"
+  }
+}
