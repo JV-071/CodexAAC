@@ -21,6 +21,17 @@ func SanitizeString(input string, maxLength int) string {
 	// Remove control characters and extra spaces
 	input = strings.TrimSpace(input)
 	
+	// Remove potentially dangerous characters (HTML/script injection)
+	var builder strings.Builder
+	for _, r := range input {
+		// Allow printable ASCII characters and common Unicode ranges
+		// Block: < > & " ' / \ and control characters
+		if r >= 32 && r != '<' && r != '>' && r != '&' && r != '"' && r != '\'' && r != '/' && r != '\\' {
+			builder.WriteRune(r)
+		}
+	}
+	input = builder.String()
+	
 	// Limit size
 	if len(input) > maxLength {
 		input = input[:maxLength]

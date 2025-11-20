@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { authService } from '../services/auth'
 
 interface Character {
     id: number
@@ -53,9 +54,7 @@ export default function AccountManagementPage() {
     const [reports] = useState<any[]>([])
 
     const handleLogout = () => {
-        // Handle logout logic
-        alert('Logging out...')
-        window.location.href = '/login'
+        authService.logout('/login')
     }
 
     return (

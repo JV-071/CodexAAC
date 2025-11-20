@@ -1,3 +1,5 @@
+import { authService } from './auth';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
 interface RequestOptions extends RequestInit {
@@ -12,7 +14,16 @@ class ApiService {
             ...options.headers,
         };
 
-        const token = localStorage.getItem('token');
+        // Check if token is expired before making request
+        if (authService.isTokenExpired() && authService.isAuthenticated()) {
+            authService.removeToken();
+            if (typeof window !== 'undefined') {
+                window.location.href = '/login?expired=true';
+            }
+            throw new Error('Session expired. Please login again.');
+        }
+
+        const token = authService.getToken();
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
@@ -25,7 +36,14 @@ class ApiService {
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.message || 'Erro na requisição');
+            // If unauthorized, clear token and redirect to login
+            if (response.status === 401) {
+                authService.removeToken();
+                if (typeof window !== 'undefined') {
+                    window.location.href = '/login?unauthorized=true';
+                }
+            }
+            throw new Error(data.message || 'Request error');
         }
 
         return data;

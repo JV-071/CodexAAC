@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { api } from '../../services/api'
+import { authService } from '../../services/auth'
 
 export default function LoginBox() {
   const [email, setEmail] = useState('')
@@ -18,8 +19,8 @@ export default function LoginBox() {
     try {
       const data = await api.post<{ token: string }>('/login', { email, password })
 
-      // Save token
-      localStorage.setItem('token', data.token)
+      // Save token using auth service
+      authService.saveToken(data.token)
 
       // Redirect or update state
       window.location.href = '/account'

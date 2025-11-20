@@ -30,15 +30,21 @@ export default function NewsSection() {
           >
             <div className="flex items-start gap-3 sm:gap-4">
               {/* Thumbnail Image */}
-              <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden border border-[#404040]/50 bg-[#0a0a0a]">
+              <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden border border-[#404040]/50 bg-[#0a0a0a] relative">
                 <img
                   src={item.image}
                   alt={item.title}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    // Fallback to icon if image doesn't exist
+                    // Fallback to icon if image doesn't exist - using React state instead of innerHTML
                     e.currentTarget.style.display = 'none'
-                    e.currentTarget.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-3xl">${item.icon}</div>`
+                    const parent = e.currentTarget.parentElement
+                    if (parent && !parent.querySelector('.fallback-icon')) {
+                      const fallback = document.createElement('div')
+                      fallback.className = 'fallback-icon w-full h-full flex items-center justify-center text-3xl'
+                      fallback.textContent = item.icon
+                      parent.appendChild(fallback)
+                    }
                   }}
                 />
               </div>

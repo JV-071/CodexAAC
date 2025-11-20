@@ -22,6 +22,11 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 		// Permissions Policy (formerly Feature-Policy)
 		w.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 		
+		// Content Security Policy - helps prevent XSS attacks
+		// 'self' allows same-origin, 'unsafe-inline' for inline styles (can be tightened later)
+		csp := "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'"
+		w.Header().Set("Content-Security-Policy", csp)
+		
 		// If using HTTPS, add HSTS
 		if r.TLS != nil {
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")

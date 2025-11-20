@@ -42,6 +42,7 @@ func main() {
 
 	// Apply security middlewares
 	r.Use(middleware.SecurityHeadersMiddleware)
+	r.Use(middleware.BodyLimitMiddleware)
 
 	// Public routes
 	r.HandleFunc("/api/health", healthHandler).Methods("GET")
@@ -49,13 +50,13 @@ func main() {
 	r.HandleFunc("/api/login", handlers.LoginHandler).Methods("POST")
 	r.HandleFunc("/api/register", handlers.RegisterHandler).Methods("POST")
 
-	// Configure server
+	// Configure server port
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	log.Printf("Server started on port %s", port)
+	log.Printf("🌐 Server starting on port %s", port)
 	log.Fatal(http.ListenAndServe(":"+port, middleware.CorsMiddleware(r)))
 }
 

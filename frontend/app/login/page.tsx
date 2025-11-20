@@ -1,10 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { api } from '../services/api'
+import { authService } from '../services/auth'
 
 export default function LoginPage() {
+  const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -12,6 +15,18 @@ export default function LoginPage() {
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    // Check for expired or unauthorized redirects
+    const expired = searchParams.get('expired')
+    const unauthorized = searchParams.get('unauthorized')
+    
+    if (expired) {
+      setError('Your session has expired. Please login again.')
+    } else if (unauthorized) {
+      setError('You are not authorized. Please login again.')
+    }
+  }, [searchParams])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target
@@ -32,8 +47,8 @@ export default function LoginPage() {
         password: formData.password
       })
 
-      // Save token
-      localStorage.setItem('token', data.token)
+      // Save token using auth service
+      authService.saveToken(data.token)
 
       // Redirect to account page
       window.location.href = '/account'

@@ -21,7 +21,14 @@ type LoginResponse struct {
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := utils.DecodeJSON(r, &req); err != nil {
-		utils.WriteError(w, http.StatusBadRequest, "Invalid request")
+		// Check for specific error types
+		if err.Error() == "request body too large" {
+			utils.WriteError(w, http.StatusRequestEntityTooLarge, "Request body too large")
+		} else if err.Error() == "content-type must be application/json" {
+			utils.WriteError(w, http.StatusUnsupportedMediaType, "Content-Type must be application/json")
+		} else {
+			utils.WriteError(w, http.StatusBadRequest, "Invalid request")
+		}
 		return
 	}
 
