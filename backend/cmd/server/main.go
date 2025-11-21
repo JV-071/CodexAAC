@@ -53,6 +53,7 @@ func main() {
 	// Protected routes (require authentication)
 	protected := r.PathPrefix("/api").Subrouter()
 	protected.Use(middleware.AuthMiddleware)
+	protected.HandleFunc("/account", handlers.GetAccountHandler).Methods("GET")
 	protected.HandleFunc("/characters", handlers.CreateCharacterHandler).Methods("POST")
 	protected.HandleFunc("/characters", handlers.GetCharactersHandler).Methods("GET")
 

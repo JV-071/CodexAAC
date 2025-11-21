@@ -1,5 +1,12 @@
 package config
 
+import "unicode"
+
+const (
+	// UnknownVocation is returned when a vocation ID is not found
+	UnknownVocation = "Unknown"
+)
+
 // CharacterCreationConfig holds default values for character creation
 type CharacterCreationConfig struct {
 	// Health and Mana
@@ -70,6 +77,10 @@ var VocationMapping = map[string]int{
 	"knight":   4,
 }
 
+// VocationReverseMapping maps vocation IDs to names
+// Automatically generated from VocationMapping in init()
+var VocationReverseMapping map[int]string
+
 // SexMapping maps sex strings to IDs
 var SexMapping = map[string]int{
 	"male":   1,
@@ -81,5 +92,32 @@ var SexMapping = map[string]int{
 var LookTypeMapping = map[int]int{
 	1: 128, // male
 	0: 136, // female
+}
+
+// init generates VocationReverseMapping from VocationMapping
+// This ensures we only maintain one source of truth
+func init() {
+	VocationReverseMapping = make(map[int]string, len(VocationMapping))
+	for name, id := range VocationMapping {
+		// Capitalize first letter safely
+		if len(name) == 0 {
+			continue
+		}
+		runes := []rune(name)
+		runes[0] = unicode.ToUpper(runes[0])
+		for i := 1; i < len(runes); i++ {
+			runes[i] = unicode.ToLower(runes[i])
+		}
+		VocationReverseMapping[id] = string(runes)
+	}
+}
+
+// GetVocationName returns the vocation name for a given vocation ID
+// Returns UnknownVocation constant if the ID is not found
+func GetVocationName(vocationID int) string {
+	if name, ok := VocationReverseMapping[vocationID]; ok {
+		return name
+	}
+	return UnknownVocation
 }
 

@@ -1,61 +1,78 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { authService } from '../services/auth'
+import { api } from '../services/api'
+import type { Character, Ticket, AccountInfo, CharactersApiResponse, AccountApiResponse } from '../types/account'
 
-interface Character {
-    id: number
-    name: string
-    vocation: string
-    level: number
-    world: string
-    status: 'online' | 'offline'
-}
-
-interface Ticket {
-    id: number
-    subject: string
-    status: 'open' | 'closed' | 'pending'
-    date: string
-}
+// Constants moved outside component to avoid recreation
+const EMPTY_TICKETS: Ticket[] = []
+const EMPTY_NAMELOCKS: any[] = []
+const EMPTY_REPORTS: any[] = []
 
 export default function AccountManagementPage() {
-    // Simulated user data - In production, this would come from authentication
-    const [user] = useState({
-        email: 'player@codexaac.com',
+    const [user, setUser] = useState<AccountInfo>({
+        email: '',
         accountType: 'Free Account',
         premiumDays: 0,
-        vipExpiry: 'Feb 26, 2024, 19:43:54 BRA',
-        createdAt: 'Jan 15, 2024',
+        createdAt: '',
     })
 
-    const [characters] = useState<Character[]>([
-        {
-            id: 1,
-            name: 'Pally Kill',
-            vocation: 'Knight',
-            level: 2,
-            world: 'Codex',
-            status: 'offline',
-        },
-        {
-            id: 2,
-            name: 'Codex Player',
-            vocation: 'Paladin',
-            level: 45,
-            world: 'Codex',
-            status: 'offline',
-        },
-    ])
+    const [characters, setCharacters] = useState<Character[]>([])
+    const [loading, setLoading] = useState(true)
+    const [userLoading, setUserLoading] = useState(true)
+    const [error, setError] = useState('')
 
-    const [tickets] = useState<Ticket[]>([])
-    const [namelocks] = useState<any[]>([])
-    const [reports] = useState<any[]>([])
+    // Fetch account information from API
+    const fetchAccountInfo = useCallback(async () => {
+        try {
+            setUserLoading(true)
+            const response = await api.get<AccountApiResponse>('/account')
+            if (response && response.data) {
+                setUser(response.data)
+            }
+        } catch (err: any) {
+            console.error('Error fetching account info:', err)
+            // Set default user on error to prevent UI breakage
+            setUser({
+                email: 'Error loading account',
+                accountType: 'Free Account',
+                premiumDays: 0,
+                createdAt: '',
+            })
+        } finally {
+            setUserLoading(false)
+        }
+    }, [])
 
-    const handleLogout = () => {
+    // Fetch characters from API
+    const fetchCharacters = useCallback(async () => {
+        try {
+            setLoading(true)
+            setError('')
+            const response = await api.get<CharactersApiResponse>('/characters')
+            if (response && response.data && Array.isArray(response.data)) {
+                setCharacters(response.data)
+            } else {
+                setError('Invalid response format')
+            }
+        } catch (err: any) {
+            setError(err.message || 'Failed to load characters')
+            console.error('Error fetching characters:', err)
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
+    useEffect(() => {
+        fetchAccountInfo()
+        fetchCharacters()
+    }, [fetchAccountInfo, fetchCharacters])
+
+    const handleLogout = useCallback(() => {
         authService.logout('/login')
-    }
+    }, [])
 
     return (
         <div>
@@ -66,7 +83,9 @@ export default function AccountManagementPage() {
                         <span className="text-[#ffd700]">Account</span>{' '}
                         <span className="text-[#3b82f6]">Management</span>
                     </h1>
-                    <p className="text-[#d0d0d0] text-sm">Welcome to your account, {user.email}!</p>
+                    <p className="text-[#d0d0d0] text-sm">
+                        {userLoading ? 'Loading...' : `Welcome to your account, ${user.email || 'user'}!`}
+                    </p>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -83,13 +102,13 @@ export default function AccountManagementPage() {
                                     Create Ticket
                                 </Link>
                             </div>
-                            {tickets.length === 0 ? (
+                            {EMPTY_TICKETS.length === 0 ? (
                                 <div className="bg-[#1a1a1a] border border-[#404040]/60 rounded-lg p-4 text-[#b0b0b0] text-sm">
                                     There are no tickets.
                                 </div>
                             ) : (
                                 <div className="space-y-2">
-                                    {tickets.map((ticket) => (
+                                    {EMPTY_TICKETS.map((ticket) => (
                                         <div
                                             key={ticket.id}
                                             className="bg-[#1a1a1a] border border-[#404040]/60 rounded-lg p-4 hover:border-[#505050] transition-all"
@@ -119,13 +138,13 @@ export default function AccountManagementPage() {
                         {/* Namelocks Section */}
                         <div className="bg-[#252525]/95 backdrop-blur-sm rounded-xl border-2 border-[#505050]/70 p-6 shadow-2xl">
                             <h2 className="text-xl font-bold text-[#ffd700] mb-4">🔒 Namelocks</h2>
-                            {namelocks.length === 0 ? (
+                            {EMPTY_NAMELOCKS.length === 0 ? (
                                 <div className="bg-[#1a1a1a] border border-[#404040]/60 rounded-lg p-4 text-[#b0b0b0] text-sm">
                                     There are no pending namelocks.
                                 </div>
                             ) : (
                                 <div className="space-y-2">
-                                    {namelocks.map((namelock, idx) => (
+                                    {EMPTY_NAMELOCKS.map((namelock, idx) => (
                                         <div
                                             key={idx}
                                             className="bg-[#1a1a1a] border border-[#404040]/60 rounded-lg p-4"
@@ -140,13 +159,13 @@ export default function AccountManagementPage() {
                         {/* My Latest Reports Section */}
                         <div className="bg-[#252525]/95 backdrop-blur-sm rounded-xl border-2 border-[#505050]/70 p-6 shadow-2xl">
                             <h2 className="text-xl font-bold text-[#ffd700] mb-4">📋 My Latest Reports</h2>
-                            {reports.length === 0 ? (
+                            {EMPTY_REPORTS.length === 0 ? (
                                 <div className="bg-[#1a1a1a] border border-[#404040]/60 rounded-lg p-4 text-[#b0b0b0] text-sm">
                                     There are no reports.
                                 </div>
                             ) : (
                                 <div className="space-y-2">
-                                    {reports.map((report, idx) => (
+                                    {EMPTY_REPORTS.map((report, idx) => (
                                         <div
                                             key={idx}
                                             className="bg-[#1a1a1a] border border-[#404040]/60 rounded-lg p-4"
@@ -169,51 +188,65 @@ export default function AccountManagementPage() {
                                     Create Character
                                 </Link>
                             </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-[#404040]/60">
-                                            <th className="text-left text-[#ffd700] text-sm font-bold py-3 px-2">#</th>
-                                            <th className="text-left text-[#ffd700] text-sm font-bold py-3 px-2">Name</th>
-                                            <th className="text-left text-[#ffd700] text-sm font-bold py-3 px-2">Vocation</th>
-                                            <th className="text-left text-[#ffd700] text-sm font-bold py-3 px-2">Level</th>
-                                            <th className="text-left text-[#ffd700] text-sm font-bold py-3 px-2">World</th>
-                                            <th className="text-left text-[#ffd700] text-sm font-bold py-3 px-2">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {characters.map((char, idx) => (
-                                            <tr
-                                                key={char.id}
-                                                className="border-b border-[#404040]/30 hover:bg-[#1a1a1a]/50 transition-all"
-                                            >
-                                                <td className="py-3 px-2 text-[#d0d0d0] text-sm">{idx + 1}</td>
-                                                <td className="py-3 px-2">
-                                                    <Link
-                                                        href={`/characters/${char.name}`}
-                                                        className="text-[#3b82f6] hover:text-[#60a5fa] font-medium text-sm transition-colors"
-                                                    >
-                                                        {char.name}
-                                                    </Link>
-                                                </td>
-                                                <td className="py-3 px-2 text-[#d0d0d0] text-sm">{char.vocation}</td>
-                                                <td className="py-3 px-2 text-[#d0d0d0] text-sm">{char.level}</td>
-                                                <td className="py-3 px-2 text-[#d0d0d0] text-sm">{char.world}</td>
-                                                <td className="py-3 px-2">
-                                                    <span
-                                                        className={`text-xs font-bold px-2 py-1 rounded ${char.status === 'online'
-                                                            ? 'bg-green-900/30 text-green-400'
-                                                            : 'bg-gray-900/30 text-gray-400'
-                                                            }`}
-                                                    >
-                                                        {char.status === 'online' ? 'Online' : 'Offline'}
-                                                    </span>
-                                                </td>
+                            {loading ? (
+                                <div className="bg-[#1a1a1a] border border-[#404040]/60 rounded-lg p-4 text-[#b0b0b0] text-sm text-center">
+                                    Loading characters...
+                                </div>
+                            ) : error ? (
+                                <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 text-red-300 text-sm">
+                                    {error}
+                                </div>
+                            ) : characters.length === 0 ? (
+                                <div className="bg-[#1a1a1a] border border-[#404040]/60 rounded-lg p-4 text-[#b0b0b0] text-sm text-center">
+                                    You don't have any characters yet. Create your first character!
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead>
+                                            <tr className="border-b border-[#404040]/60">
+                                                <th className="text-left text-[#ffd700] text-sm font-bold py-3 px-2">#</th>
+                                                <th className="text-left text-[#ffd700] text-sm font-bold py-3 px-2">Name</th>
+                                                <th className="text-left text-[#ffd700] text-sm font-bold py-3 px-2">Vocation</th>
+                                                <th className="text-left text-[#ffd700] text-sm font-bold py-3 px-2">Level</th>
+                                                <th className="text-left text-[#ffd700] text-sm font-bold py-3 px-2">World</th>
+                                                <th className="text-left text-[#ffd700] text-sm font-bold py-3 px-2">Status</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        </thead>
+                                        <tbody>
+                                            {characters.map((char, idx) => (
+                                                <tr
+                                                    key={char.id}
+                                                    className="border-b border-[#404040]/30 hover:bg-[#1a1a1a]/50 transition-all"
+                                                >
+                                                    <td className="py-3 px-2 text-[#d0d0d0] text-sm">{idx + 1}</td>
+                                                    <td className="py-3 px-2">
+                                                        <Link
+                                                            href={`/characters/${char.name}`}
+                                                            className="text-[#3b82f6] hover:text-[#60a5fa] font-medium text-sm transition-colors"
+                                                        >
+                                                            {char.name}
+                                                        </Link>
+                                                    </td>
+                                                    <td className="py-3 px-2 text-[#d0d0d0] text-sm">{char.vocation}</td>
+                                                    <td className="py-3 px-2 text-[#d0d0d0] text-sm">{char.level}</td>
+                                                    <td className="py-3 px-2 text-[#d0d0d0] text-sm">{char.world}</td>
+                                                    <td className="py-3 px-2">
+                                                        <span
+                                                            className={`text-xs font-bold px-2 py-1 rounded ${char.status === 'online'
+                                                                ? 'bg-green-900/30 text-green-400'
+                                                                : 'bg-gray-900/30 text-gray-400'
+                                                                }`}
+                                                        >
+                                                            {char.status === 'online' ? 'Online' : 'Offline'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
                         </div>
 
                         {/* Download Client Section */}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { api } from '../services/api'
 
@@ -27,45 +27,49 @@ export default function CreateCharacterPage() {
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
     const checked = (e.target as HTMLInputElement).checked
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }))
-  }
+    // Clear error when user starts typing
+    if (error) {
+      setError('')
+    }
+  }, [error])
 
-  const validateForm = () => {
-    if (!formData.characterName || !formData.vocation) {
+  const validateForm = useCallback((data: typeof formData) => {
+    if (!data.characterName || !data.vocation) {
       setError('Please fill in all fields')
       return false
     }
 
-    if (!formData.agreeToTerms) {
+    if (!data.agreeToTerms) {
       setError('You must agree to the Privacy Terms and the Rules')
       return false
     }
 
-    if (formData.characterName.length < CHARACTER_NAME_MIN_LENGTH || formData.characterName.length > CHARACTER_NAME_MAX_LENGTH) {
+    if (data.characterName.length < CHARACTER_NAME_MIN_LENGTH || data.characterName.length > CHARACTER_NAME_MAX_LENGTH) {
       setError(`Character name must be between ${CHARACTER_NAME_MIN_LENGTH} and ${CHARACTER_NAME_MAX_LENGTH} characters`)
       return false
     }
 
-    if (!NAME_REGEX.test(formData.characterName)) {
+    if (!NAME_REGEX.test(data.characterName)) {
       setError('Character name must contain only letters')
       return false
     }
 
     return true
-  }
+  }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setSuccess(false)
 
-    if (!validateForm()) {
+    if (!validateForm(formData)) {
       return
     }
 
@@ -90,7 +94,7 @@ export default function CreateCharacterPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [formData, validateForm])
 
   return (
     <div>

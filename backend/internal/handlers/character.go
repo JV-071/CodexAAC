@@ -181,12 +181,28 @@ func GetCharactersHandler(w http.ResponseWriter, r *http.Request) {
 	type Character struct {
 		ID       int    `json:"id"`
 		Name     string `json:"name"`
-		Vocation int    `json:"vocation"`
+		Vocation string `json:"vocation"`
 		Level    int    `json:"level"`
+		World    string `json:"world"`
+		Status   string `json:"status"`
 	}
 
-	rows, err := database.DB.QueryContext(ctx, 
-		"SELECT id, name, vocation, level FROM players WHERE account_id = ?", userID)
+	// Query to get characters with online status
+	// LEFT JOIN with players_online to check if character is online
+	query := `
+		SELECT 
+			p.id, 
+			p.name, 
+			p.vocation, 
+			p.level,
+			CASE WHEN po.player_id IS NOT NULL THEN 'online' ELSE 'offline' END as status
+		FROM players p
+		LEFT JOIN players_online po ON p.id = po.player_id
+		WHERE p.account_id = ?
+		ORDER BY p.name
+	`
+
+	rows, err := database.DB.QueryContext(ctx, query, userID)
 	if err != nil {
 		if utils.HandleDBError(w, err) {
 			return
@@ -200,10 +216,20 @@ func GetCharactersHandler(w http.ResponseWriter, r *http.Request) {
 	characters := make([]Character, 0, 5)
 	for rows.Next() {
 		var char Character
-		if err := rows.Scan(&char.ID, &char.Name, &char.Vocation, &char.Level); err != nil {
+		var vocationID int
+		var status string
+		
+		if err := rows.Scan(&char.ID, &char.Name, &vocationID, &char.Level, &status); err != nil {
 			utils.WriteError(w, http.StatusInternalServerError, "Error reading character data")
 			return
 		}
+
+		// Convert vocation ID to name using centralized config
+		char.Vocation = config.GetVocationName(vocationID)
+
+		char.Status = status
+		char.World = "Codex" // Default world name
+
 		characters = append(characters, char)
 	}
 

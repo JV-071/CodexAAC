@@ -1,0 +1,33 @@
+export interface Character {
+    id: number
+    name: string
+    vocation: string
+    level: number
+    world: string
+    status: 'online' | 'offline'
+}
+
+export interface Ticket {
+    id: number
+    subject: string
+    status: 'open' | 'closed' | 'pending'
+    date: string
+}
+
+export interface AccountInfo {
+    email: string
+    accountType: string
+    premiumDays: number
+    vipExpiry?: string
+    createdAt: string
+}
+
+export interface ApiResponse<T> {
+    message: string
+    status: string
+    data: T
+}
+
+export interface CharactersApiResponse extends ApiResponse<Character[]> {}
+export interface AccountApiResponse extends ApiResponse<AccountInfo> {}
+
