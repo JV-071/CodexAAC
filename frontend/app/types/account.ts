@@ -25,6 +25,8 @@ export interface AccountInfo {
     codexCoinsTransferable: number
     loyaltyPoints: number
     loyaltyTitle?: string
+    deletionScheduledAt?: number
+    status: string
 }
 
 export interface ApiResponse<T> {

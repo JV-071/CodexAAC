@@ -20,6 +20,7 @@ export default function AccountManagementPage() {
         codexCoins: 0,
         codexCoinsTransferable: 0,
         loyaltyPoints: 0,
+        status: 'active',
     })
 
     const [characters, setCharacters] = useState<Character[]>([])
@@ -46,6 +47,7 @@ export default function AccountManagementPage() {
                 codexCoins: 0,
                 codexCoinsTransferable: 0,
                 loyaltyPoints: 0,
+                status: 'active',
             })
         } finally {
             setUserLoading(false)

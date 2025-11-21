@@ -54,6 +54,8 @@ func main() {
 	protected := r.PathPrefix("/api").Subrouter()
 	protected.Use(middleware.AuthMiddleware)
 	protected.HandleFunc("/account", handlers.GetAccountHandler).Methods("GET")
+	protected.HandleFunc("/account", handlers.DeleteAccountHandler).Methods("DELETE")
+	protected.HandleFunc("/account/cancel-deletion", handlers.CancelDeletionHandler).Methods("POST")
 	protected.HandleFunc("/characters", handlers.CreateCharacterHandler).Methods("POST")
 	protected.HandleFunc("/characters", handlers.GetCharactersHandler).Methods("GET")
 

@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -21,7 +23,19 @@ type AccountInfo struct {
 	CodexCoinsTransferable int    `json:"codexCoinsTransferable"`
 	LoyaltyPoints          int    `json:"loyaltyPoints"`
 	LoyaltyTitle           string `json:"loyaltyTitle,omitempty"`
+	DeletionScheduledAt    *int64 `json:"deletionScheduledAt,omitempty"`
+	Status                 string `json:"status"`
 }
+
+type DeleteAccountRequest struct {
+	Password string `json:"password"`
+}
+
+const (
+	AccountStatusActive         = "active"
+	AccountStatusPendingDeletion = "pending_deletion"
+	DeletionGracePeriodDays     = 30
+)
 
 // GetAccountHandler returns account information for the authenticated user
 func GetAccountHandler(w http.ResponseWriter, r *http.Request) {
@@ -42,10 +56,13 @@ func GetAccountHandler(w http.ResponseWriter, r *http.Request) {
 	var coins int
 	var coinsTransferable int
 
+	var deletionScheduledAt sql.NullInt64
+	var status string
+
 	err := database.DB.QueryRowContext(ctx,
-		"SELECT email, premdays, lastday, creation, coins, coins_transferable FROM accounts WHERE id = ?",
+		"SELECT email, premdays, lastday, creation, coins, coins_transferable, COALESCE(deletion_scheduled_at, 0), COALESCE(status, 'active') FROM accounts WHERE id = ?",
 		userID,
-	).Scan(&email, &premdays, &lastday, &creation, &coins, &coinsTransferable)
+	).Scan(&email, &premdays, &lastday, &creation, &coins, &coinsTransferable, &deletionScheduledAt, &status)
 
 	if err != nil {
 		if utils.HandleDBError(w, err) {
@@ -144,6 +161,7 @@ func GetAccountHandler(w http.ResponseWriter, r *http.Request) {
 		CodexCoinsTransferable: coinsTransferable,
 		LoyaltyPoints:          loyaltyPoints,
 		LoyaltyTitle:           loyaltyTitleFormatted,
+		Status:                 status,
 	}
 
 	if vipExpiry != "" {
@@ -154,6 +172,181 @@ func GetAccountHandler(w http.ResponseWriter, r *http.Request) {
 		accountInfo.LastLogin = lastLoginFormatted
 	}
 
+	if deletionScheduledAt.Valid && deletionScheduledAt.Int64 > 0 {
+		deletionTime := deletionScheduledAt.Int64
+		accountInfo.DeletionScheduledAt = &deletionTime
+	}
+
 	utils.WriteSuccess(w, http.StatusOK, "Account information retrieved successfully", accountInfo)
+}
+
+// DeleteAccountHandler schedules account for deletion (soft delete with grace period)
+func DeleteAccountHandler(w http.ResponseWriter, r *http.Request) {
+	// Get user ID from context
+	userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+	if !ok {
+		utils.WriteError(w, http.StatusUnauthorized, "Authentication required")
+		return
+	}
+
+	// Decode request body
+	var req DeleteAccountRequest
+	if err := utils.DecodeJSON(r, &req); err != nil {
+		if errors.Is(err, utils.ErrBodyTooLarge) {
+			utils.WriteError(w, http.StatusRequestEntityTooLarge, "Request body too large")
+		} else if errors.Is(err, utils.ErrInvalidContentType) {
+			utils.WriteError(w, http.StatusUnsupportedMediaType, "Content-Type must be application/json")
+		} else {
+			utils.WriteError(w, http.StatusBadRequest, "Invalid request")
+		}
+		return
+	}
+
+	// Validate password
+	if req.Password == "" {
+		utils.WriteError(w, http.StatusBadRequest, "Password is required")
+		return
+	}
+
+	if len(req.Password) > 128 {
+		utils.WriteError(w, http.StatusBadRequest, "Password too long")
+		return
+	}
+
+	ctx, cancel := utils.NewDBContext()
+	defer cancel()
+
+	// Verify password
+	var storedPassword string
+	var currentStatus string
+	err := database.DB.QueryRowContext(ctx,
+		"SELECT password, COALESCE(status, 'active') FROM accounts WHERE id = ?",
+		userID,
+	).Scan(&storedPassword, &currentStatus)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			utils.WriteError(w, http.StatusNotFound, "Account not found")
+			return
+		}
+		if utils.HandleDBError(w, err) {
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, "Error verifying account")
+		return
+	}
+
+	// Check if account is already pending deletion
+	if currentStatus == AccountStatusPendingDeletion {
+		utils.WriteError(w, http.StatusBadRequest, "Account is already scheduled for deletion")
+		return
+	}
+
+	// Verify password (constant time comparison)
+	hashedPassword := utils.HashSHA1(req.Password)
+	if storedPassword != hashedPassword {
+		utils.WriteError(w, http.StatusBadRequest, "Invalid password")
+		return
+	}
+
+	// Check if user has any characters online (optimized - using LIMIT 1 for early exit)
+	var exists int
+	err = database.DB.QueryRowContext(ctx,
+		`SELECT 1 
+		 FROM players p 
+		 INNER JOIN players_online po ON p.id = po.player_id 
+		 WHERE p.account_id = ?
+		 LIMIT 1`,
+		userID,
+	).Scan(&exists)
+
+	if err != nil && err != sql.ErrNoRows {
+		if utils.HandleDBError(w, err) {
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, "Error checking online status")
+		return
+	}
+
+	// If no error, means at least one character is online
+	if err == nil {
+		utils.WriteError(w, http.StatusBadRequest, "Cannot delete account while characters are online. Please log out all characters first.")
+		return
+	}
+
+	// Calculate deletion date (30 days from now)
+	deletionTime := time.Now().AddDate(0, 0, DeletionGracePeriodDays).Unix()
+
+	// Update account status
+	_, err = database.DB.ExecContext(ctx,
+		"UPDATE accounts SET deletion_scheduled_at = ?, status = ? WHERE id = ?",
+		deletionTime, AccountStatusPendingDeletion, userID,
+	)
+
+	if err != nil {
+		if utils.HandleDBError(w, err) {
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, "Error scheduling account deletion")
+		return
+	}
+
+	utils.WriteSuccess(w, http.StatusOK, "Account scheduled for deletion. You have 30 days to cancel.", map[string]interface{}{
+		"deletionScheduledAt": deletionTime,
+		"gracePeriodDays":     DeletionGracePeriodDays,
+	})
+}
+
+// CancelDeletionHandler cancels scheduled account deletion
+func CancelDeletionHandler(w http.ResponseWriter, r *http.Request) {
+	// Get user ID from context
+	userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+	if !ok {
+		utils.WriteError(w, http.StatusUnauthorized, "Authentication required")
+		return
+	}
+
+	ctx, cancel := utils.NewDBContext()
+	defer cancel()
+
+	// Check if account is pending deletion
+	var currentStatus string
+	err := database.DB.QueryRowContext(ctx,
+		"SELECT COALESCE(status, 'active') FROM accounts WHERE id = ?",
+		userID,
+	).Scan(&currentStatus)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			utils.WriteError(w, http.StatusNotFound, "Account not found")
+			return
+		}
+		if utils.HandleDBError(w, err) {
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, "Error checking account status")
+		return
+	}
+
+	if currentStatus != AccountStatusPendingDeletion {
+		utils.WriteError(w, http.StatusBadRequest, "Account is not scheduled for deletion")
+		return
+	}
+
+	// Cancel deletion
+	_, err = database.DB.ExecContext(ctx,
+		"UPDATE accounts SET deletion_scheduled_at = NULL, status = ? WHERE id = ?",
+		AccountStatusActive, userID,
+	)
+
+	if err != nil {
+		if utils.HandleDBError(w, err) {
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, "Error canceling account deletion")
+		return
+	}
+
+	utils.WriteSuccess(w, http.StatusOK, "Account deletion canceled successfully", nil)
 }
 

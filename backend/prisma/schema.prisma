@@ -81,26 +81,28 @@ model account_viplist {
 }
 
 model accounts {
-  id                  Int                   @id @default(autoincrement()) @db.UnsignedInt
-  name                String                @default("") @db.VarChar(32)
-  password            String                @db.Text
-  email               String                @unique @default("") @db.VarChar(255)
-  premdays            Int                   @default(0)
-  premdays_purchased  Int                   @default(0)
-  lastday             Int                   @default(0) @db.UnsignedInt
-  type                Boolean               @default(true)
-  coins               Int                   @default(0) @db.UnsignedInt
-  coins_transferable  Int                   @default(0) @db.UnsignedInt
-  tournament_coins    Int                   @default(0) @db.UnsignedInt
-  creation            Int                   @default(0) @db.UnsignedInt
-  recruiter           Int?                  @default(0)
-  house_bid_id        Int                   @default(0)
-  account_ban_history account_ban_history[]
-  account_bans        account_bans?
-  account_viplist     account_viplist[]
-  coins_transactions  coins_transactions[]
-  players             players[]
-  store_history       store_history[]
+  id                    Int                   @id @default(autoincrement()) @db.UnsignedInt
+  name                  String                @default("") @db.VarChar(32)
+  password              String                @db.Text
+  email                 String                @unique @default("") @db.VarChar(255)
+  premdays              Int                   @default(0)
+  premdays_purchased    Int                   @default(0)
+  lastday               Int                   @default(0) @db.UnsignedInt
+  type                  Boolean               @default(true)
+  coins                 Int                   @default(0) @db.UnsignedInt
+  coins_transferable    Int                   @default(0) @db.UnsignedInt
+  tournament_coins      Int                   @default(0) @db.UnsignedInt
+  creation              Int                   @default(0) @db.UnsignedInt
+  recruiter             Int?                  @default(0)
+  house_bid_id          Int                   @default(0)
+  deletion_scheduled_at Int?                  @default(0) @db.UnsignedInt
+  status                String                @default("active") @db.VarChar(20)
+  account_ban_history   account_ban_history[]
+  account_bans          account_bans?
+  account_viplist       account_viplist[]
+  coins_transactions    coins_transactions[]
+  players               players[]
+  store_history         store_history[]
 }
 
 model boosted_boss {

@@ -1,11 +1,22 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { api } from '../../services/api'
 import type { AccountInfo, AccountApiResponse } from '../../types/account'
+import DeleteAccountModal from '../../components/account/DeleteAccountModal'
+import DeletionWarningBanner from '../../components/account/DeletionWarningBanner'
+import CancelDeletionModal from '../../components/account/CancelDeletionModal'
 
 type TabType = 'general' | 'products' | 'history' | '2fa'
+
+// Constants moved outside component to avoid recreation
+const TABS = [
+    { id: 'general' as TabType, label: 'General Information' },
+    { id: 'products' as TabType, label: 'Products Available' },
+    { id: 'history' as TabType, label: 'History' },
+    { id: '2fa' as TabType, label: 'Two-Factor Authentication' },
+] as const
 
 export default function AccountSettingsPage() {
     const [activeTab, setActiveTab] = useState<TabType>('general')
@@ -17,8 +28,21 @@ export default function AccountSettingsPage() {
         codexCoins: 0,
         codexCoinsTransferable: 0,
         loyaltyPoints: 0,
+        status: 'active',
     })
     const [loading, setLoading] = useState(true)
+    const [showDeleteModal, setShowDeleteModal] = useState(false)
+    const [showCancelModal, setShowCancelModal] = useState(false)
+    const [isDeleting, setIsDeleting] = useState(false)
+    const [isCanceling, setIsCanceling] = useState(false)
+
+    // Calculate time remaining until deletion (memoized to avoid recalculation on every render)
+    const timeRemaining = useMemo(() => {
+        if (!userData.deletionScheduledAt) return null
+        const now = Math.floor(Date.now() / 1000)
+        const remaining = userData.deletionScheduledAt - now
+        return remaining > 0 ? remaining : 0
+    }, [userData.deletionScheduledAt])
 
     // Fetch account information from API
     const fetchAccountInfo = useCallback(async () => {
@@ -39,12 +63,38 @@ export default function AccountSettingsPage() {
         fetchAccountInfo()
     }, [fetchAccountInfo])
 
-    const tabs = [
-        { id: 'general' as TabType, label: 'General Information' },
-        { id: 'products' as TabType, label: 'Products Available' },
-        { id: 'history' as TabType, label: 'History' },
-        { id: '2fa' as TabType, label: 'Two-Factor Authentication' },
-    ]
+    // Handle account deletion
+    const handleDeleteAccount = useCallback(async (password: string) => {
+        setIsDeleting(true)
+        try {
+            await api.delete<AccountApiResponse>('/account', { password })
+            setShowDeleteModal(false)
+            await fetchAccountInfo()
+        } catch (err: any) {
+            if (!err.message?.includes('Invalid password') && !err.message?.includes('password')) {
+                console.error('Error deleting account:', err)
+            }
+            throw err
+        } finally {
+            setIsDeleting(false)
+        }
+    }, [fetchAccountInfo])
+
+    // Handle cancel deletion
+    const handleCancelDeletion = useCallback(async () => {
+        setIsCanceling(true)
+        try {
+            await api.post<AccountApiResponse>('/account/cancel-deletion', {})
+            setShowCancelModal(false)
+            await fetchAccountInfo()
+            // Success - banner will disappear automatically when status changes
+        } catch (err: any) {
+            console.error('Error canceling deletion:', err)
+            // Could add error state here if needed
+        } finally {
+            setIsCanceling(false)
+        }
+    }, [fetchAccountInfo])
 
     return (
         <div>
@@ -76,7 +126,7 @@ export default function AccountSettingsPage() {
                 {/* Tabs Navigation */}
                 <div className="bg-[#252525]/95 backdrop-blur-sm rounded-t-xl border-2 border-b-0 border-[#505050]/70 p-4">
                     <div className="flex flex-wrap gap-2">
-                        {tabs.map((tab) => (
+                        {TABS.map((tab) => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
@@ -97,6 +147,15 @@ export default function AccountSettingsPage() {
                     {activeTab === 'general' && (
                         <div className="space-y-6">
                             <h2 className="text-2xl font-bold text-[#ffd700] mb-4">General Information</h2>
+
+                            {/* Deletion Warning Banner */}
+                            {!loading && userData.status === 'pending_deletion' && userData.deletionScheduledAt && (
+                                <DeletionWarningBanner
+                                    timeRemaining={timeRemaining}
+                                    onCancel={() => setShowCancelModal(true)}
+                                    isCanceling={isCanceling}
+                                />
+                            )}
 
                             <div className="bg-[#1a1a1a] border border-[#404040]/60 rounded-lg p-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -165,8 +224,12 @@ export default function AccountSettingsPage() {
                                     <button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold py-2 px-6 rounded-lg transition-all">
                                         Change Email
                                     </button>
-                                    <button className="bg-red-700 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition-all">
-                                        Terminate Account
+                                    <button
+                                        onClick={() => setShowDeleteModal(true)}
+                                        disabled={userData.status === 'pending_deletion'}
+                                        className="bg-red-700 hover:bg-red-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-2 px-6 rounded-lg transition-all"
+                                    >
+                                        {userData.status === 'pending_deletion' ? 'Deletion Scheduled' : 'Terminate Account'}
                                     </button>
                                 </div>
                             </div>
@@ -352,6 +415,22 @@ export default function AccountSettingsPage() {
                     </Link>
                 </div>
             </main>
+
+            {/* Delete Account Confirmation Modal */}
+            <DeleteAccountModal
+                isOpen={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                onConfirm={handleDeleteAccount}
+                isDeleting={isDeleting}
+            />
+
+            {/* Cancel Deletion Confirmation Modal */}
+            <CancelDeletionModal
+                isOpen={showCancelModal}
+                onClose={() => setShowCancelModal(false)}
+                onConfirm={handleCancelDeletion}
+                isCanceling={isCanceling}
+            />
         </div>
     )
 }
