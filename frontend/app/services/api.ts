@@ -1,12 +1,10 @@
 import { authService } from './auth';
-import { csrfService } from './csrf';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
 interface RequestOptions extends RequestInit {
     headers?: Record<string, string>;
     public?: boolean; // Flag to indicate public endpoint (no auth required)
-    skipCSRF?: boolean; // Flag to skip CSRF token (for read-only operations)
 }
 
 class ApiService {
@@ -40,22 +38,8 @@ class ApiService {
         }
         // In production, token is in httpOnly cookie (automatically sent)
 
-        // Add CSRF token for state-changing operations (POST, PUT, DELETE)
-        // Skip if explicitly requested or if it's a public endpoint
-        const skipCSRF = options.skipCSRF === true || isPublic;
-        const isStateChanging = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(
-          (options.method || 'GET').toUpperCase()
-        );
-
-        if (!skipCSRF && isStateChanging && !isPublic) {
-          const csrfToken = await csrfService.getOrFetchToken();
-          if (csrfToken) {
-            headers['X-CSRF-Token'] = csrfToken;
-          }
-        }
-
         // Remove custom options before passing to fetch
-        const { public: _, skipCSRF: __, ...fetchOptions } = options;
+        const { public: _, ...fetchOptions } = options;
 
         // Include credentials (cookies) in all requests
         const response = await fetch(url, {
@@ -76,31 +60,6 @@ class ApiService {
         }
 
         if (!response.ok) {
-            // If CSRF token is invalid, try to get a new one and retry once
-            if (response.status === 403 && data.message && data.message.includes('CSRF')) {
-                // Clear invalid token
-                csrfService.clearToken();
-                // Try to get new token and retry (only once to avoid infinite loop)
-                const newToken = await csrfService.getToken();
-                if (newToken && isStateChanging && !skipCSRF) {
-                    headers['X-CSRF-Token'] = newToken;
-                    // Retry the request once
-                    const retryResponse = await fetch(url, {
-                        ...fetchOptions,
-                        headers,
-                        credentials: 'include',
-                    });
-                    if (retryResponse.ok) {
-                        const retryContentType = retryResponse.headers.get('content-type');
-                        if (retryContentType && retryContentType.includes('application/json')) {
-                            return await retryResponse.json() as T;
-                        }
-                        const retryText = await retryResponse.text();
-                        return { message: retryText || 'Request error' } as T;
-                    }
-                }
-            }
-
             // If unauthorized, redirect to login (skip for public endpoints)
             // Public endpoints like /login may return 401 for invalid credentials/2FA tokens
             // Cookie will be cleared by backend on logout

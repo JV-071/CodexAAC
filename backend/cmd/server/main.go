@@ -55,22 +55,20 @@ func main() {
 	protected := r.PathPrefix("/api").Subrouter()
 	protected.Use(middleware.AuthMiddleware)
 	
-	// CSRF token endpoint (no CSRF protection needed - it generates the token)
-	protected.HandleFunc("/csrf-token", handlers.GetCSRFTokenHandler).Methods("GET")
-	
-	// Read-only endpoints (no CSRF protection needed)
+	// Account endpoints
 	protected.HandleFunc("/account", handlers.GetAccountHandler).Methods("GET")
-	protected.HandleFunc("/account/2fa/status", handlers.Get2FAStatusHandler).Methods("GET")
-	protected.HandleFunc("/characters", handlers.GetCharactersHandler).Methods("GET")
+	protected.HandleFunc("/account", handlers.DeleteAccountHandler).Methods("DELETE")
+	protected.HandleFunc("/account/cancel-deletion", handlers.CancelDeletionHandler).Methods("POST")
 	
-	// Critical endpoints (require CSRF protection)
-	// Use the same protected router but apply CSRF middleware to specific routes
-	protected.HandleFunc("/account", middleware.CSRFMiddleware(http.HandlerFunc(handlers.DeleteAccountHandler)).ServeHTTP).Methods("DELETE")
-	protected.HandleFunc("/account/cancel-deletion", middleware.CSRFMiddleware(http.HandlerFunc(handlers.CancelDeletionHandler)).ServeHTTP).Methods("POST")
-	protected.HandleFunc("/account/2fa/enable", middleware.CSRFMiddleware(http.HandlerFunc(handlers.Enable2FAHandler)).ServeHTTP).Methods("POST")
-	protected.HandleFunc("/account/2fa/verify", middleware.CSRFMiddleware(http.HandlerFunc(handlers.Verify2FAHandler)).ServeHTTP).Methods("POST")
-	protected.HandleFunc("/account/2fa/disable", middleware.CSRFMiddleware(http.HandlerFunc(handlers.Disable2FAHandler)).ServeHTTP).Methods("POST")
-	protected.HandleFunc("/characters", middleware.CSRFMiddleware(http.HandlerFunc(handlers.CreateCharacterHandler)).ServeHTTP).Methods("POST")
+	// 2FA endpoints
+	protected.HandleFunc("/account/2fa/status", handlers.Get2FAStatusHandler).Methods("GET")
+	protected.HandleFunc("/account/2fa/enable", handlers.Enable2FAHandler).Methods("POST")
+	protected.HandleFunc("/account/2fa/verify", handlers.Verify2FAHandler).Methods("POST")
+	protected.HandleFunc("/account/2fa/disable", handlers.Disable2FAHandler).Methods("POST")
+	
+	// Character endpoints
+	protected.HandleFunc("/characters", handlers.GetCharactersHandler).Methods("GET")
+	protected.HandleFunc("/characters", handlers.CreateCharacterHandler).Methods("POST")
 
 	// Configure server port
 	port := os.Getenv("PORT")

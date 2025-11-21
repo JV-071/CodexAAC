@@ -65,12 +65,6 @@ export const authService = {
   // Logout - clears token/cookie and redirects
   async logout(redirectTo: string = '/login'): Promise<void> {
     try {
-      // Import CSRF service dynamically to avoid circular dependency
-      const { csrfService } = await import('./csrf');
-      
-      // Clear CSRF token
-      csrfService.clearToken();
-      
       // Call backend logout endpoint to clear httpOnly cookie (production)
       await fetch(`${API_URL}/logout`, {
         method: 'POST',
