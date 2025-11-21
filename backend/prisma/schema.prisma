@@ -97,6 +97,7 @@ model accounts {
   house_bid_id          Int                   @default(0)
   deletion_scheduled_at Int?                  @default(0) @db.UnsignedInt
   status                String                @default("active") @db.VarChar(20)
+  secret                String?               @db.VarChar(16)
   account_ban_history   account_ban_history[]
   account_bans          account_bans?
   account_viplist       account_viplist[]

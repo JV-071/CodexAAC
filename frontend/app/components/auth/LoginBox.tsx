@@ -5,9 +5,17 @@ import Link from 'next/link'
 import { api } from '../../services/api'
 import { authService } from '../../services/auth'
 
+interface LoginResponse {
+  token?: string
+  requires2FA?: boolean
+  message?: string
+}
+
 export default function LoginBox() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [twoFactorToken, setTwoFactorToken] = useState('')
+  const [requires2FA, setRequires2FA] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -17,15 +25,34 @@ export default function LoginBox() {
     setLoading(true)
 
     try {
-      const data = await api.post<{ token: string }>('/login', { email, password })
+      const data = await api.post<LoginResponse>('/login', {
+        email,
+        password,
+        token: requires2FA ? twoFactorToken : undefined,
+      }, { public: true })
+
+      // Check if 2FA is required
+      if (data.requires2FA) {
+        setRequires2FA(true)
+        setError('')
+        return
+      }
 
       // Save token using auth service
-      authService.saveToken(data.token)
-
-      // Redirect or update state
-      window.location.href = '/account'
+      if (data.token) {
+        authService.saveToken(data.token)
+        // Redirect or update state
+        window.location.href = '/account'
+      } else {
+        setError('Login failed. Please try again.')
+      }
     } catch (err: any) {
-      setError(err.message)
+      setError(err.message || 'Invalid email or password. Please try again.')
+      // Reset 2FA state on error (unless it's a 2FA-related error)
+      if (err.message && !err.message.includes('2FA') && !err.message.includes('token')) {
+        setRequires2FA(false)
+        setTwoFactorToken('')
+      }
     } finally {
       setLoading(false)
     }
@@ -68,16 +95,39 @@ export default function LoginBox() {
             onChange={(e) => setPassword(e.target.value)}
             className="w-full bg-[#1a1a1a] border-2 border-[#404040]/60 rounded-lg px-4 py-2.5 sm:py-3 text-[#e0e0e0] focus:outline-none focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6]/20 transition-all placeholder:text-[#666] text-sm sm:text-base"
             placeholder="Enter your password"
-            disabled={loading}
+            disabled={loading || requires2FA}
           />
         </div>
+
+        {/* 2FA Token */}
+        {requires2FA && (
+          <div>
+            <label htmlFor="twoFactorToken" className="block text-[#e0e0e0] text-sm font-medium mb-2">
+              Two-Factor Authentication Code *
+            </label>
+            <input
+              id="twoFactorToken"
+              type="text"
+              value={twoFactorToken}
+              onChange={(e) => setTwoFactorToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              className="w-full bg-[#1a1a1a] border-2 border-[#404040]/60 rounded-lg px-4 py-2.5 sm:py-3 text-[#e0e0e0] focus:outline-none focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6]/20 transition-all placeholder:text-[#666] text-center text-xl sm:text-2xl tracking-widest"
+              placeholder="000000"
+              maxLength={6}
+              disabled={loading}
+              autoFocus
+            />
+            <p className="mt-1 text-xs text-[#888]">
+              Enter the 6-digit code from your authenticator app
+            </p>
+          </div>
+        )}
 
         <button
           type="submit"
           disabled={loading}
           className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold py-2.5 sm:py-3 px-4 rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02] text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Logging in...' : 'Login'}
+          {loading ? (requires2FA ? 'Verifying...' : 'Logging in...') : (requires2FA ? 'Verify & Login' : 'Login')}
         </button>
       </form>
 

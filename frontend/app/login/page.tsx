@@ -6,6 +6,12 @@ import { useSearchParams } from 'next/navigation'
 import { api } from '../services/api'
 import { authService } from '../services/auth'
 
+interface LoginResponse {
+  token?: string
+  requires2FA?: boolean
+  message?: string
+}
+
 function LoginForm() {
   const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
@@ -13,6 +19,8 @@ function LoginForm() {
     password: '',
     rememberMe: false,
   })
+  const [twoFactorToken, setTwoFactorToken] = useState('')
+  const [requires2FA, setRequires2FA] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -42,18 +50,34 @@ function LoginForm() {
     setLoading(true)
 
     try {
-      const data = await api.post<{ token: string }>('/login', {
+      const data = await api.post<LoginResponse>('/login', {
         email: formData.email,
-        password: formData.password
-      })
+        password: formData.password,
+        token: requires2FA ? twoFactorToken : undefined,
+      }, { public: true })
+
+      // Check if 2FA is required
+      if (data.requires2FA) {
+        setRequires2FA(true)
+        setError('')
+        return
+      }
 
       // Save token using auth service
-      authService.saveToken(data.token)
-
-      // Redirect to account page
-      window.location.href = '/account'
+      if (data.token) {
+        authService.saveToken(data.token)
+        // Redirect to account page
+        window.location.href = '/account'
+      } else {
+        setError('Login failed. Please try again.')
+      }
     } catch (err: any) {
       setError(err.message || 'Invalid email or password. Please try again.')
+      // Reset 2FA state on error
+      if (err.message && !err.message.includes('2FA')) {
+        setRequires2FA(false)
+        setTwoFactorToken('')
+      }
     } finally {
       setLoading(false)
     }
@@ -112,10 +136,35 @@ function LoginForm() {
                   onChange={handleChange}
                   className="w-full bg-[#1a1a1a] border-2 border-[#404040]/60 rounded-lg px-4 py-3 text-[#e0e0e0] focus:outline-none focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6]/20 transition-all placeholder:text-[#666]"
                   placeholder="Enter your password"
-                  disabled={loading}
+                  disabled={loading || requires2FA}
                   required
                 />
               </div>
+
+              {/* 2FA Token */}
+              {requires2FA && (
+                <div>
+                  <label htmlFor="twoFactorToken" className="block text-[#e0e0e0] text-sm font-medium mb-2">
+                    Two-Factor Authentication Code *
+                  </label>
+                  <input
+                    id="twoFactorToken"
+                    name="twoFactorToken"
+                    type="text"
+                    value={twoFactorToken}
+                    onChange={(e) => setTwoFactorToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    className="w-full bg-[#1a1a1a] border-2 border-[#404040]/60 rounded-lg px-4 py-3 text-[#e0e0e0] focus:outline-none focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6]/20 transition-all placeholder:text-[#666] text-center text-2xl tracking-widest"
+                    placeholder="000000"
+                    maxLength={6}
+                    disabled={loading}
+                    required
+                    autoFocus
+                  />
+                  <p className="mt-2 text-sm text-[#888]">
+                    Enter the 6-digit code from your authenticator app
+                  </p>
+                </div>
+              )}
 
               {/* Remember Me & Forgot Password */}
               <div className="flex items-center justify-between">

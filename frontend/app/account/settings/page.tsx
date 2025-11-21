@@ -7,6 +7,7 @@ import type { AccountInfo, AccountApiResponse } from '../../types/account'
 import DeleteAccountModal from '../../components/account/DeleteAccountModal'
 import DeletionWarningBanner from '../../components/account/DeletionWarningBanner'
 import CancelDeletionModal from '../../components/account/CancelDeletionModal'
+import TwoFactorAuth from '../../components/account/TwoFactorAuth'
 
 type TabType = 'general' | 'products' | 'history' | '2fa'
 
@@ -357,51 +358,7 @@ export default function AccountSettingsPage() {
                     )}
 
                     {/* Two-Factor Authentication Tab */}
-                    {activeTab === '2fa' && (
-                        <div className="space-y-6">
-                            <h2 className="text-2xl font-bold text-[#ffd700] mb-4">Two-Factor Authentication</h2>
-
-                            <div className="bg-[#1a1a1a] border border-[#404040]/60 rounded-lg p-6">
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="flex-1">
-                                        <h3 className="text-[#ffd700] font-bold mb-3">
-                                            Connect your Codex account to an authenticator app!
-                                        </h3>
-                                        <p className="text-[#d0d0d0] text-sm mb-4">
-                                            As a first step to connect an <strong>authenticator app</strong> to your account, click on "Activate"!
-                                            Then pick up your phone, read the QR code and enter the authentication code shown.
-                                        </p>
-                                        <div className="bg-[#0a0a0a] border border-[#404040]/60 rounded-lg p-4 mb-4">
-                                            <p className="text-[#888] text-sm">
-                                                🔒 Two-factor authentication is currently <strong className="text-red-400">not activated</strong> for your account.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <button className="bg-green-700 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg transition-all whitespace-nowrap ml-4">
-                                        Activate
-                                    </button>
-                                </div>
-
-                                <div className="border-t border-[#404040]/60 pt-4">
-                                    <h4 className="text-[#ffd700] font-bold mb-2">Benefits of 2FA:</h4>
-                                    <ul className="space-y-2 text-[#d0d0d0] text-sm">
-                                        <li className="flex items-start gap-2">
-                                            <span className="text-green-400">✓</span>
-                                            <span>Enhanced account security</span>
-                                        </li>
-                                        <li className="flex items-start gap-2">
-                                            <span className="text-green-400">✓</span>
-                                            <span>Protection against unauthorized access</span>
-                                        </li>
-                                        <li className="flex items-start gap-2">
-                                            <span className="text-green-400">✓</span>
-                                            <span>Works with Google Authenticator, Authy, and other apps</span>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    {activeTab === '2fa' && <TwoFactorAuth />}
                 </div>
 
                 {/* Back Link */}

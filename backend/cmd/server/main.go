@@ -56,6 +56,10 @@ func main() {
 	protected.HandleFunc("/account", handlers.GetAccountHandler).Methods("GET")
 	protected.HandleFunc("/account", handlers.DeleteAccountHandler).Methods("DELETE")
 	protected.HandleFunc("/account/cancel-deletion", handlers.CancelDeletionHandler).Methods("POST")
+	protected.HandleFunc("/account/2fa/status", handlers.Get2FAStatusHandler).Methods("GET")
+	protected.HandleFunc("/account/2fa/enable", handlers.Enable2FAHandler).Methods("POST")
+	protected.HandleFunc("/account/2fa/verify", handlers.Verify2FAHandler).Methods("POST")
+	protected.HandleFunc("/account/2fa/disable", handlers.Disable2FAHandler).Methods("POST")
 	protected.HandleFunc("/characters", handlers.CreateCharacterHandler).Methods("POST")
 	protected.HandleFunc("/characters", handlers.GetCharactersHandler).Methods("GET")
 

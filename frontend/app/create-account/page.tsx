@@ -103,7 +103,7 @@ export default function CreateAccountPage() {
       await api.post('/register', {
         email: formData.email,
         password: formData.password
-      })
+      }, { public: true })
 
       setSuccessMessage('Account created successfully! You can now log in.')
       setFormData({
