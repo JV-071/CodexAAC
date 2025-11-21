@@ -2,61 +2,57 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { api } from '../services/api'
+
+const vocations = [
+  { value: 'sorcerer', label: 'Sorcerer', icon: '🧙' },
+  { value: 'druid', label: 'Druid', icon: '🌿' },
+  { value: 'paladin', label: 'Paladin', icon: '🏹' },
+  { value: 'knight', label: 'Knight', icon: '⚔️' },
+]
+
+const NAME_REGEX = /^[a-zA-Z\s]+$/
+const CHARACTER_NAME_MIN_LENGTH = 3
+const CHARACTER_NAME_MAX_LENGTH = 20
 
 export default function CreateCharacterPage() {
   const [formData, setFormData] = useState({
     characterName: '',
     vocation: '',
-    world: '',
     sex: 'male',
+    agreeToTerms: false,
   })
 
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const vocations = [
-    { value: 'sorcerer', label: 'Sorcerer', icon: '🧙' },
-    { value: 'druid', label: 'Druid', icon: '🌿' },
-    { value: 'paladin', label: 'Paladin', icon: '🏹' },
-    { value: 'knight', label: 'Knight', icon: '⚔️' },
-  ]
-
-  const worlds = [
-    { value: 'retro1', label: 'Retro-PVP 1' },
-    { value: 'retro2', label: 'Retro-PVP 2' },
-    { value: 'retro3', label: 'Retro-PVP 3' },
-    { value: 'retro4', label: 'Retro-PVP 4' },
-    { value: 'optional1', label: 'Optional-PVP 1' },
-    { value: 'optional2', label: 'Optional-PVP 2' },
-    { value: 'optional3', label: 'Optional-PVP 3' },
-    { value: 'optional4', label: 'Optional-PVP 4' },
-    { value: 'open1', label: 'Open-PVP 1' },
-    { value: 'open2', label: 'Open-PVP 2' },
-    { value: 'open3', label: 'Open-PVP 3' },
-  ]
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
+    const { name, value, type } = e.target
+    const checked = (e.target as HTMLInputElement).checked
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }))
   }
 
   const validateForm = () => {
-    if (!formData.characterName || !formData.vocation || !formData.world) {
+    if (!formData.characterName || !formData.vocation) {
       setError('Please fill in all fields')
       return false
     }
 
-    if (formData.characterName.length < 3 || formData.characterName.length > 20) {
-      setError('Character name must be between 3 and 20 characters')
+    if (!formData.agreeToTerms) {
+      setError('You must agree to the Privacy Terms and the Rules')
       return false
     }
 
-    const nameRegex = /^[a-zA-Z\s]+$/
-    if (!nameRegex.test(formData.characterName)) {
+    if (formData.characterName.length < CHARACTER_NAME_MIN_LENGTH || formData.characterName.length > CHARACTER_NAME_MAX_LENGTH) {
+      setError(`Character name must be between ${CHARACTER_NAME_MIN_LENGTH} and ${CHARACTER_NAME_MAX_LENGTH} characters`)
+      return false
+    }
+
+    if (!NAME_REGEX.test(formData.characterName)) {
       setError('Character name must contain only letters')
       return false
     }
@@ -76,21 +72,21 @@ export default function CreateCharacterPage() {
     setLoading(true)
 
     try {
-      // Here you will make the API call
-      console.log('Create Character:', formData)
-      
-      // Simulation of creation
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      await api.post('/characters', {
+        name: formData.characterName,
+        vocation: formData.vocation,
+        sex: formData.sex,
+      })
       
       setSuccess(true)
       setFormData({
         characterName: '',
         vocation: '',
-        world: '',
         sex: 'male',
+        agreeToTerms: false,
       })
-    } catch (err) {
-      setError('Error creating character. Please try again.')
+    } catch (err: any) {
+      setError(err.message || 'Error creating character. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -139,7 +135,7 @@ export default function CreateCharacterPage() {
                     placeholder="Enter character name"
                     disabled={loading}
                   />
-                  <p className="mt-1 text-xs text-[#666]">Between 3 and 20 characters, letters only</p>
+                  <p className="mt-1 text-xs text-[#666]">Between {CHARACTER_NAME_MIN_LENGTH} and {CHARACTER_NAME_MAX_LENGTH} characters, letters only</p>
                 </div>
 
                 {/* Sex Selection */}
@@ -207,26 +203,29 @@ export default function CreateCharacterPage() {
                   </div>
                 </div>
 
-                {/* World Selection */}
+                {/* Terms and Conditions */}
                 <div>
-                  <label htmlFor="world" className="block text-[#e0e0e0] text-sm font-medium mb-2">
-                    World *
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="agreeToTerms"
+                      checked={formData.agreeToTerms}
+                      onChange={handleChange}
+                      className="mt-1 w-4 h-4 text-[#ffd700] bg-[#1a1a1a] border-2 border-[#404040]/60 rounded focus:ring-2 focus:ring-[#ffd700]/20 focus:ring-offset-0 cursor-pointer"
+                      disabled={loading}
+                    />
+                    <span className="text-[#d0d0d0] text-sm">
+                      I agree to the{' '}
+                      <Link href="/legal/privacy" className="text-[#ffd700] hover:underline" target="_blank">
+                        Privacy Terms
+                      </Link>
+                      {' '}and the{' '}
+                      <Link href="/legal/terms" className="text-[#ffd700] hover:underline" target="_blank">
+                        Rules
+                      </Link>
+                      .
+                    </span>
                   </label>
-                  <select
-                    id="world"
-                    name="world"
-                    value={formData.world}
-                    onChange={handleChange}
-                    className="w-full bg-[#1a1a1a] border-2 border-[#404040]/60 rounded-lg px-4 py-3 text-[#e0e0e0] focus:outline-none focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6]/20 transition-all"
-                    disabled={loading}
-                  >
-                    <option value="">Select a world</option>
-                    {worlds.map((world) => (
-                      <option key={world.value} value={world.value} className="bg-[#1a1a1a]">
-                        {world.label}
-                      </option>
-                    ))}
-                  </select>
                 </div>
 
                 {/* Submit Button */}

@@ -1,11 +1,12 @@
 package handlers
 
 import (
+	"errors"
+	"net/http"
 	"time"
 
 	"codexaac-backend/internal/database"
 	"codexaac-backend/pkg/utils"
-	"net/http"
 )
 
 type RegisterRequest struct {
@@ -16,10 +17,9 @@ type RegisterRequest struct {
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	var req RegisterRequest
 	if err := utils.DecodeJSON(r, &req); err != nil {
-		// Check for specific error types
-		if err.Error() == "request body too large" {
+		if errors.Is(err, utils.ErrBodyTooLarge) {
 			utils.WriteError(w, http.StatusRequestEntityTooLarge, "Request body too large")
-		} else if err.Error() == "content-type must be application/json" {
+		} else if errors.Is(err, utils.ErrInvalidContentType) {
 			utils.WriteError(w, http.StatusUnsupportedMediaType, "Content-Type must be application/json")
 		} else {
 			utils.WriteError(w, http.StatusBadRequest, "Invalid data")
@@ -84,5 +84,5 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.WriteSuccess(w, http.StatusCreated, "Account created successfully")
+	utils.WriteSuccess(w, http.StatusCreated, "Account created successfully", nil)
 }

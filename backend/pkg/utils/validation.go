@@ -7,6 +7,12 @@ import (
 
 // Compile regex once for better performance
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
+var nameRegex = regexp.MustCompile(`^[a-zA-Z\s]+$`)
+
+// GetNameRegex returns the compiled name regex
+func GetNameRegex() *regexp.Regexp {
+	return nameRegex
+}
 
 // IsValidEmail validates email format
 func IsValidEmail(email string) bool {

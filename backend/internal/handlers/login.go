@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"errors"
 	"net/http"
 
 	"codexaac-backend/internal/database"
@@ -21,10 +22,9 @@ type LoginResponse struct {
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := utils.DecodeJSON(r, &req); err != nil {
-		// Check for specific error types
-		if err.Error() == "request body too large" {
+		if errors.Is(err, utils.ErrBodyTooLarge) {
 			utils.WriteError(w, http.StatusRequestEntityTooLarge, "Request body too large")
-		} else if err.Error() == "content-type must be application/json" {
+		} else if errors.Is(err, utils.ErrInvalidContentType) {
 			utils.WriteError(w, http.StatusUnsupportedMediaType, "Content-Type must be application/json")
 		} else {
 			utils.WriteError(w, http.StatusBadRequest, "Invalid request")

@@ -18,7 +18,14 @@ func WriteError(w http.ResponseWriter, statusCode int, message string) {
 }
 
 // WriteSuccess writes a success JSON response
-func WriteSuccess(w http.ResponseWriter, statusCode int, message string) {
-	WriteJSON(w, statusCode, map[string]string{"message": message})
+func WriteSuccess(w http.ResponseWriter, statusCode int, message string, data interface{}) {
+	response := map[string]interface{}{
+		"message": message,
+		"status":  "success",
+	}
+	if data != nil {
+		response["data"] = data
+	}
+	WriteJSON(w, statusCode, response)
 }
 

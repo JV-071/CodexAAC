@@ -50,6 +50,12 @@ func main() {
 	r.HandleFunc("/api/login", handlers.LoginHandler).Methods("POST")
 	r.HandleFunc("/api/register", handlers.RegisterHandler).Methods("POST")
 
+	// Protected routes (require authentication)
+	protected := r.PathPrefix("/api").Subrouter()
+	protected.Use(middleware.AuthMiddleware)
+	protected.HandleFunc("/characters", handlers.CreateCharacterHandler).Methods("POST")
+	protected.HandleFunc("/characters", handlers.GetCharactersHandler).Methods("GET")
+
 	// Configure server port
 	port := os.Getenv("PORT")
 	if port == "" {
