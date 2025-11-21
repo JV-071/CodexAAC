@@ -22,6 +22,7 @@ export interface AccountInfo {
     createdAt: string
     lastLogin?: string
     codexCoins: number
+    codexCoinsTransferable: number
     loyaltyPoints: number
     loyaltyTitle?: string
 }

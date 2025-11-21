@@ -18,6 +18,7 @@ export default function AccountManagementPage() {
         premiumDays: 0,
         createdAt: '',
         codexCoins: 0,
+        codexCoinsTransferable: 0,
         loyaltyPoints: 0,
     })
 
@@ -43,6 +44,7 @@ export default function AccountManagementPage() {
                 premiumDays: 0,
                 createdAt: '',
                 codexCoins: 0,
+                codexCoinsTransferable: 0,
                 loyaltyPoints: 0,
             })
         } finally {

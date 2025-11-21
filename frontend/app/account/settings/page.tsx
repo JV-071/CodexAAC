@@ -15,6 +15,7 @@ export default function AccountSettingsPage() {
         premiumDays: 0,
         createdAt: '',
         codexCoins: 0,
+        codexCoinsTransferable: 0,
         loyaltyPoints: 0,
     })
     const [loading, setLoading] = useState(true)
@@ -141,7 +142,7 @@ export default function AccountSettingsPage() {
                                         <div className="flex items-center gap-2">
                                             <span className="text-[#e0e0e0]">{loading ? 'Loading...' : userData.codexCoins}</span>
                                             <span className="text-2xl">🪙</span>
-                                            <span className="text-[#888] text-xs">(Including: 0 💎)</span>
+                                            <span className="text-[#888] text-xs">(Including: {loading ? '...' : userData.codexCoinsTransferable} 💎)</span>
                                         </div>
                                     </div>
                                     <div>

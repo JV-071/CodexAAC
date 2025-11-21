@@ -11,15 +11,16 @@ import (
 )
 
 type AccountInfo struct {
-	Email         string `json:"email"`
-	AccountType   string `json:"accountType"`
-	PremiumDays   int    `json:"premiumDays"`
-	VipExpiry     string `json:"vipExpiry,omitempty"`
-	CreatedAt     string `json:"createdAt"`
-	LastLogin     string `json:"lastLogin,omitempty"`
-	CodexCoins    int    `json:"codexCoins"`
-	LoyaltyPoints int    `json:"loyaltyPoints"`
-	LoyaltyTitle  string `json:"loyaltyTitle,omitempty"`
+	Email                  string `json:"email"`
+	AccountType            string `json:"accountType"`
+	PremiumDays            int    `json:"premiumDays"`
+	VipExpiry              string `json:"vipExpiry,omitempty"`
+	CreatedAt              string `json:"createdAt"`
+	LastLogin              string `json:"lastLogin,omitempty"`
+	CodexCoins             int    `json:"codexCoins"`
+	CodexCoinsTransferable int    `json:"codexCoinsTransferable"`
+	LoyaltyPoints          int    `json:"loyaltyPoints"`
+	LoyaltyTitle           string `json:"loyaltyTitle,omitempty"`
 }
 
 // GetAccountHandler returns account information for the authenticated user
@@ -91,9 +92,6 @@ func GetAccountHandler(w http.ResponseWriter, r *http.Request) {
 		lastLoginFormatted = time.Unix(lastLogin, 0).Format("Jan 2, 2006, 15:04:05")
 	}
 
-	// Calculate total Codex Coins
-	totalCoins := coins + coinsTransferable
-
 	// Calculate loyalty points (simplified - can be enhanced later)
 	// For now, using a simple calculation based on account age
 	loyaltyPoints := 0
@@ -138,13 +136,14 @@ func GetAccountHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	accountInfo := AccountInfo{
-		Email:         email,
-		AccountType:   accountType,
-		PremiumDays:   premdays,
-		CreatedAt:     createdAt,
-		CodexCoins:    totalCoins,
-		LoyaltyPoints: loyaltyPoints,
-		LoyaltyTitle:  loyaltyTitleFormatted,
+		Email:                  email,
+		AccountType:            accountType,
+		PremiumDays:            premdays,
+		CreatedAt:              createdAt,
+		CodexCoins:             coins,
+		CodexCoinsTransferable: coinsTransferable,
+		LoyaltyPoints:          loyaltyPoints,
+		LoyaltyTitle:           loyaltyTitleFormatted,
 	}
 
 	if vipExpiry != "" {
