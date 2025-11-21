@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { api } from '../services/api'
 import { authService } from '../services/auth'
 
-export default function LoginPage() {
+function LoginForm() {
   const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
     email: '',
@@ -166,5 +166,25 @@ export default function LoginPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-md mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl sm:text-4xl font-bold mb-2">
+              <span className="text-[#ffd700]">Account</span>
+              <span className="text-[#3b82f6]"> Login</span>
+            </h1>
+            <p className="text-[#d0d0d0] text-sm">Loading...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }
