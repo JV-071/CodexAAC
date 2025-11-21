@@ -1,39 +1,47 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { api } from '../../services/api'
+import type { AccountInfo, AccountApiResponse } from '../../types/account'
 
-type TabType = 'general' | 'products' | 'history' | 'registration' | '2fa'
+type TabType = 'general' | 'products' | 'history' | '2fa'
 
 export default function AccountSettingsPage() {
     const [activeTab, setActiveTab] = useState<TabType>('general')
-
-    // Simulated user data
-    const userData = {
-        email: 'codexacc@play.com',
-        created: 'Feb 20, 2024, 19:43:54',
-        lastLogin: 'Nov 20, 2025, 10:58:46',
-        accountStatus: 'Free Account',
-        premiumExpiry: 'Feb 25, 2024, 19:43:54 BRA',
+    const [userData, setUserData] = useState<AccountInfo>({
+        email: '',
+        accountType: 'Free Account',
         premiumDays: 0,
-        CodexCoins: 0,
+        createdAt: '',
+        codexCoins: 0,
         loyaltyPoints: 0,
-        loyaltyTitle: 'Scout of Codex (Promotion to: Sentinel of Codex at 1 Loyalty Points)',
-        address: {
-            name: 'CodexAAC',
-            street: 'CodexAAC',
-            city: 'CodexAAC',
-            zip: '000-000',
-            state: 'CodexAAC',
-            country: 'CodexAAC',
-        },
-    }
+    })
+    const [loading, setLoading] = useState(true)
+
+    // Fetch account information from API
+    const fetchAccountInfo = useCallback(async () => {
+        try {
+            setLoading(true)
+            const response = await api.get<AccountApiResponse>('/account')
+            if (response && response.data) {
+                setUserData(response.data)
+            }
+        } catch (err: any) {
+            console.error('Error fetching account info:', err)
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
+    useEffect(() => {
+        fetchAccountInfo()
+    }, [fetchAccountInfo])
 
     const tabs = [
         { id: 'general' as TabType, label: 'General Information' },
         { id: 'products' as TabType, label: 'Products Available' },
         { id: 'history' as TabType, label: 'History' },
-        { id: 'registration' as TabType, label: 'Registration' },
         { id: '2fa' as TabType, label: 'Two-Factor Authentication' },
     ]
 
@@ -94,31 +102,44 @@ export default function AccountSettingsPage() {
                                     <div>
                                         <label className="text-[#ffd700] text-sm font-bold block mb-1">Email Address:</label>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[#e0e0e0]">{userData.email}</span>
-                                            <span className="bg-green-700 text-white text-xs px-2 py-0.5 rounded">✓</span>
+                                            <span className="text-[#e0e0e0]">{loading ? 'Loading...' : userData.email}</span>
+                                            {!loading && userData.email && (
+                                                <span className="bg-green-700 text-white text-xs px-2 py-0.5 rounded">✓</span>
+                                            )}
                                         </div>
                                     </div>
                                     <div>
                                         <label className="text-[#ffd700] text-sm font-bold block mb-1">Created:</label>
-                                        <span className="text-[#e0e0e0]">{userData.created}</span>
+                                        <span className="text-[#e0e0e0]">{loading ? 'Loading...' : userData.createdAt}</span>
                                     </div>
                                     <div>
                                         <label className="text-[#ffd700] text-sm font-bold block mb-1">Last Login (Website):</label>
-                                        <span className="text-[#e0e0e0]">{userData.lastLogin}</span>
+                                        <span className="text-[#e0e0e0]">
+                                            {loading ? 'Loading...' : (userData.lastLogin || 'Never')}
+                                        </span>
                                     </div>
                                     <div>
                                         <label className="text-[#ffd700] text-sm font-bold block mb-1">Account Status:</label>
                                         <div>
-                                            <span className="text-red-400 font-bold">{userData.accountStatus}</span>
-                                            <p className="text-[#888] text-xs">
-                                                (Premium Time expired at {userData.premiumExpiry}, balance: {userData.premiumDays} days)
-                                            </p>
+                                            <span className={`font-bold ${userData.premiumDays > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                {loading ? 'Loading...' : userData.accountType}
+                                            </span>
+                                            {!loading && userData.vipExpiry && (
+                                                <p className="text-[#888] text-xs">
+                                                    (Premium Time expired at {userData.vipExpiry}, balance: {userData.premiumDays} days)
+                                                </p>
+                                            )}
+                                            {!loading && !userData.vipExpiry && userData.premiumDays === 0 && (
+                                                <p className="text-[#888] text-xs">
+                                                    (No premium time, balance: 0 days)
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                     <div>
                                         <label className="text-[#ffd700] text-sm font-bold block mb-1">Codex Coins:</label>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[#e0e0e0]">{userData.CodexCoins}</span>
+                                            <span className="text-[#e0e0e0]">{loading ? 'Loading...' : userData.codexCoins}</span>
                                             <span className="text-2xl">💰</span>
                                             <span className="text-[#888] text-xs">(Including: 0 💎)</span>
                                             <span className="text-2xl">🎁</span>
@@ -126,14 +147,16 @@ export default function AccountSettingsPage() {
                                     </div>
                                     <div>
                                         <label className="text-[#ffd700] text-sm font-bold block mb-1">Loyalty Points:</label>
-                                        <span className="text-[#e0e0e0]">{userData.loyaltyPoints}</span>
+                                        <span className="text-[#e0e0e0]">{loading ? 'Loading...' : userData.loyaltyPoints}</span>
                                     </div>
                                 </div>
 
-                                <div className="mb-6">
-                                    <label className="text-[#ffd700] text-sm font-bold block mb-1">Loyalty Title:</label>
-                                    <span className="text-[#e0e0e0] text-sm">{userData.loyaltyTitle}</span>
-                                </div>
+                                {!loading && userData.loyaltyTitle && (
+                                    <div className="mb-6">
+                                        <label className="text-[#ffd700] text-sm font-bold block mb-1">Loyalty Title:</label>
+                                        <span className="text-[#e0e0e0] text-sm">{userData.loyaltyTitle}</span>
+                                    </div>
+                                )}
 
                                 <div className="flex flex-wrap gap-3">
                                     <button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold py-2 px-6 rounded-lg transition-all">
@@ -265,30 +288,6 @@ export default function AccountSettingsPage() {
                                     <button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold py-2 px-6 rounded-lg transition-all">
                                         View History
                                     </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Registration Tab */}
-                    {activeTab === 'registration' && (
-                        <div className="space-y-6">
-                            <h2 className="text-2xl font-bold text-[#ffd700] mb-4">Registration</h2>
-
-                            <div className="bg-[#1a1a1a] border border-[#404040]/60 rounded-lg p-6">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h3 className="text-[#ffd700] font-bold">Address:</h3>
-                                    <button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold py-2 px-6 rounded-lg transition-all">
-                                        Edit
-                                    </button>
-                                </div>
-
-                                <div className="space-y-2 text-[#e0e0e0]">
-                                    <p>{userData.address.name}</p>
-                                    <p>{userData.address.street}</p>
-                                    <p>{userData.address.city}</p>
-                                    <p>{userData.address.zip}, {userData.address.state}</p>
-                                    <p>{userData.address.country}</p>
                                 </div>
                             </div>
                         </div>

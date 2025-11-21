@@ -17,6 +17,8 @@ export default function AccountManagementPage() {
         accountType: 'Free Account',
         premiumDays: 0,
         createdAt: '',
+        codexCoins: 0,
+        loyaltyPoints: 0,
     })
 
     const [characters, setCharacters] = useState<Character[]>([])
@@ -40,6 +42,8 @@ export default function AccountManagementPage() {
                 accountType: 'Free Account',
                 premiumDays: 0,
                 createdAt: '',
+                codexCoins: 0,
+                loyaltyPoints: 0,
             })
         } finally {
             setUserLoading(false)

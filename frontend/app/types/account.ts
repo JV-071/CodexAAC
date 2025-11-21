@@ -20,6 +20,10 @@ export interface AccountInfo {
     premiumDays: number
     vipExpiry?: string
     createdAt: string
+    lastLogin?: string
+    codexCoins: number
+    loyaltyPoints: number
+    loyaltyTitle?: string
 }
 
 export interface ApiResponse<T> {
