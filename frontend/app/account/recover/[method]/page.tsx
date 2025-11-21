@@ -65,9 +65,7 @@ export default function RecoverAccountFormPage() {
     setLoading(true)
 
     try {
-      // Here you will make the API call
-      console.log('Recovery request:', { method, ...formData })
-      
+      // Here you will make the API call     
       // Simulation of sending
       await new Promise(resolve => setTimeout(resolve, 1500))
       

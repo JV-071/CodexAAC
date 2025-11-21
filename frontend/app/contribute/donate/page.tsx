@@ -79,13 +79,6 @@ export default function DonatePage() {
         }
 
         // Here you would integrate with payment API
-        console.log({
-            amount: finalAmount,
-            payment: selectedPayment,
-            donor: { name: donorName, email: donorEmail },
-            message,
-            showPublicly,
-        })
 
         alert(`Thank you for your donation of $${finalAmount}! Redirecting to payment...`)
     }

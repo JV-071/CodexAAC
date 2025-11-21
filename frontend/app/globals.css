@@ -43,3 +43,13 @@
   animation: scroll-banner-image 30s linear infinite;
 }
 
+/* Background image for layout */
+.bg-background-image {
+  background-image: url('/images/background.jpg');
+}
+
+/* Gradient overlay for layout */
+.bg-gradient-overlay {
+  background: linear-gradient(180deg, #2a3a4a 0%, #1a2a3a 50%, #2a3a4a 100%);
+}
+

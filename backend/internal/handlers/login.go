@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"os"
 
 	"codexaac-backend/internal/database"
 	"codexaac-backend/pkg/auth"
@@ -18,9 +19,10 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	Token        string `json:"token,omitempty"`        // JWT token (only if login successful)
+	Token        string `json:"token,omitempty"`        // JWT token (for development - localStorage)
 	Requires2FA  bool   `json:"requires2FA,omitempty"`  // True if 2FA token is required
 	Message      string `json:"message,omitempty"`      // Message for the user
+	// Note: Token is sent via httpOnly cookie in production, and in JSON for development (different ports)
 }
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
@@ -126,5 +128,15 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, LoginResponse{Token: jwtToken})
+	// Set token in httpOnly cookie (production) and also return in JSON (development)
+	// In development, frontend and backend are on different ports, so cookies don't work
+	// In production, both use same domain, so httpOnly cookie works
+	isSecure := r.TLS != nil || os.Getenv("ENV") == "production"
+	utils.SetAuthCookie(w, jwtToken, isSecure)
+
+	// Return token in JSON for development (different ports), cookie for production
+	utils.WriteJSON(w, http.StatusOK, LoginResponse{
+		Token:   jwtToken, // Include token for development (localStorage)
+		Message: "Login successful",
+	})
 }

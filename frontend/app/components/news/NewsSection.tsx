@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+
 export default function NewsSection() {
   const newsItems = [
     {
@@ -18,6 +20,12 @@ export default function NewsSection() {
     },
   ]
 
+  const [imageErrors, setImageErrors] = useState<Set<number>>(new Set())
+
+  const handleImageError = (index: number) => {
+    setImageErrors(prev => new Set(prev).add(index))
+  }
+
   return (
     <div className="bg-[#252525]/95 backdrop-blur-sm rounded-xl border border-[#404040]/60 p-4 sm:p-6 shadow-xl">
       <h2 className="text-[#ffd700] text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 pb-3 border-b-2 border-[#ffd700]/30">Latest News</h2>
@@ -30,23 +38,19 @@ export default function NewsSection() {
           >
             <div className="flex items-start gap-3 sm:gap-4">
               {/* Thumbnail Image */}
-              <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden border border-[#404040]/50 bg-[#0a0a0a] relative">
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    // Fallback to icon if image doesn't exist - using React state instead of innerHTML
-                    e.currentTarget.style.display = 'none'
-                    const parent = e.currentTarget.parentElement
-                    if (parent && !parent.querySelector('.fallback-icon')) {
-                      const fallback = document.createElement('div')
-                      fallback.className = 'fallback-icon w-full h-full flex items-center justify-center text-3xl'
-                      fallback.textContent = item.icon
-                      parent.appendChild(fallback)
-                    }
-                  }}
-                />
+              <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden border border-[#404040]/50 bg-[#0a0a0a] relative flex items-center justify-center">
+                {imageErrors.has(index) ? (
+                  <div className="w-full h-full flex items-center justify-center text-3xl">
+                    {item.icon}
+                  </div>
+                ) : (
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    className="w-full h-full object-cover"
+                    onError={() => handleImageError(index)}
+                  />
+                )}
               </div>
               
               {/* Content */}

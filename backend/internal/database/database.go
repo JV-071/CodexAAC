@@ -37,10 +37,12 @@ func InitDB() error {
 	DB.SetConnMaxIdleTime(10 * time.Minute)
 	
 	// Maximum number of open connections simultaneously
-	DB.SetMaxOpenConns(25)
+	// Increased for better scalability with 1000+ concurrent users
+	DB.SetMaxOpenConns(50)
 	
 	// Maximum number of idle connections in the pool
-	DB.SetMaxIdleConns(5)
+	// Increased to reduce connection overhead
+	DB.SetMaxIdleConns(10)
 
 	// Test connection
 	if err := DB.Ping(); err != nil {

@@ -9,6 +9,7 @@ interface LoginResponse {
   token?: string
   requires2FA?: boolean
   message?: string
+  // Note: Token in JSON for development (different ports), httpOnly cookie in production
 }
 
 export default function LoginBox() {
@@ -38,14 +39,13 @@ export default function LoginBox() {
         return
       }
 
-      // Save token using auth service
-      if (data.token) {
-        authService.saveToken(data.token)
-        // Redirect or update state
-        window.location.href = '/account'
-      } else {
-        setError('Login failed. Please try again.')
-      }
+      // Save token (localStorage in dev, cookie in production)
+      // In development, we need to save to localStorage for Authorization header
+      // In production, backend sets httpOnly cookie
+      authService.saveToken(data.token || '')
+      
+      // Redirect to account page
+      window.location.href = '/account'
     } catch (err: any) {
       setError(err.message || 'Invalid email or password. Please try again.')
       // Reset 2FA state on error (unless it's a 2FA-related error)

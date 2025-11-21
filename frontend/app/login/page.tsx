@@ -10,6 +10,7 @@ interface LoginResponse {
   token?: string
   requires2FA?: boolean
   message?: string
+  // Note: Token in JSON for development (different ports), httpOnly cookie in production
 }
 
 function LoginForm() {
@@ -63,14 +64,15 @@ function LoginForm() {
         return
       }
 
-      // Save token using auth service
+      // Save token (localStorage in dev, cookie in production)
+      // In development, we need to save to localStorage for Authorization header
+      // In production, backend sets httpOnly cookie
       if (data.token) {
         authService.saveToken(data.token)
-        // Redirect to account page
-        window.location.href = '/account'
-      } else {
-        setError('Login failed. Please try again.')
       }
+      
+      // Redirect to account page
+      window.location.href = '/account'
     } catch (err: any) {
       setError(err.message || 'Invalid email or password. Please try again.')
       // Reset 2FA state on error
