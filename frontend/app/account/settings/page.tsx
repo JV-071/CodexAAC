@@ -140,9 +140,8 @@ export default function AccountSettingsPage() {
                                         <label className="text-[#ffd700] text-sm font-bold block mb-1">Codex Coins:</label>
                                         <div className="flex items-center gap-2">
                                             <span className="text-[#e0e0e0]">{loading ? 'Loading...' : userData.codexCoins}</span>
-                                            <span className="text-2xl">💰</span>
+                                            <span className="text-2xl">🪙</span>
                                             <span className="text-[#888] text-xs">(Including: 0 💎)</span>
-                                            <span className="text-2xl">🎁</span>
                                         </div>
                                     </div>
                                     <div>
@@ -204,7 +203,7 @@ export default function AccountSettingsPage() {
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 mb-2">
                                             <h3 className="text-[#ffd700] font-bold">Codex Coins</h3>
-                                            <span className="text-2xl">💰</span>
+                                            <span className="text-2xl">🪙</span>
                                         </div>
                                         <p className="text-[#d0d0d0] text-sm mb-2">
                                             Get Codex Coins to shop exclusive products in the Store, including Mounts, Outfits, a Character Name Change or even Premium Time.
