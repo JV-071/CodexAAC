@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { api } from '../services/api'
 import { authService } from '../services/auth'
 
@@ -14,6 +14,7 @@ interface LoginResponse {
 }
 
 function LoginForm() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
     email: '',
@@ -24,6 +25,7 @@ function LoginForm() {
   const [requires2FA, setRequires2FA] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [checkingAuth, setCheckingAuth] = useState(true)
 
   useEffect(() => {
     // Check for expired or unauthorized redirects
@@ -32,10 +34,27 @@ function LoginForm() {
     
     if (expired) {
       setError('Your session has expired. Please login again.')
+      setCheckingAuth(false)
     } else if (unauthorized) {
       setError('You are not authorized. Please login again.')
+      setCheckingAuth(false)
+    } else {
+      // Check if user is already authenticated
+      const checkAuth = () => {
+        // First, check locally if user has a valid token
+        if (authService.isAuthenticated()) {
+          // Token exists and is valid locally - redirect to account
+          // Backend will validate on the next request if needed
+          router.push('/account')
+        } else {
+          // No valid token locally - show login form
+          setCheckingAuth(false)
+        }
+      }
+
+      checkAuth()
     }
-  }, [searchParams])
+  }, [searchParams, router])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target
@@ -72,7 +91,7 @@ function LoginForm() {
       }
       
       // Redirect to account page
-      window.location.href = '/account'
+      router.push('/account')
     } catch (err: any) {
       setError(err.message || 'Invalid email or password. Please try again.')
       // Reset 2FA state on error
@@ -83,6 +102,25 @@ function LoginForm() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Show loading state while checking authentication
+  if (checkingAuth) {
+    return (
+      <div>
+        <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="max-w-md mx-auto">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl sm:text-4xl font-bold mb-2">
+                <span className="text-[#ffd700]">Account</span>
+                <span className="text-[#3b82f6]"> Login</span>
+              </h1>
+              <p className="text-[#d0d0d0] text-sm">Checking authentication...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    )
   }
 
   return (

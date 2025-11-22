@@ -35,13 +35,19 @@ export const authService = {
     }
   },
 
-  // Check if user is authenticated
+  // Check if user is authenticated (local check only - doesn't verify with backend)
   isAuthenticated(): boolean {
     if (isDevelopment) {
-      return this.getToken() !== null;
+      const token = this.getToken();
+      if (!token) return false;
+      // Check if token is expired
+      return !this.isTokenExpired();
     }
-    // In production, assume authenticated if cookie exists (validated by backend)
-    return true;
+    // In production, we can't check cookie directly (httpOnly)
+    // Return true and let backend validate - but we can check if we have a token in localStorage as fallback
+    // Actually, in production with httpOnly cookies, we can't check client-side
+    // The backend will validate the cookie on the next request
+    return true; // Backend will validate cookie
   },
 
   // Check if token is expired

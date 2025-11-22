@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"errors"
 	"net/http"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"codexaac-backend/pkg/config"
 	"codexaac-backend/pkg/middleware"
 	"codexaac-backend/pkg/utils"
+	"github.com/gorilla/mux"
 )
 
 type CreateCharacterRequest struct {
@@ -224,11 +226,12 @@ func GetCharactersHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Convert vocation ID to name using centralized config
+			// Convert vocation ID to name using centralized config
 		char.Vocation = config.GetVocationName(vocationID)
 
 		char.Status = status
-		char.World = "Codex" // Default world name
+		// Get world name from server config (fallback to default)
+		char.World = config.GetServerName()
 
 		characters = append(characters, char)
 	}
@@ -239,5 +242,177 @@ func GetCharactersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteSuccess(w, http.StatusOK, "Characters retrieved successfully", characters)
+}
+
+// GetCharacterDetailsHandler returns detailed information about a character by name
+func GetCharacterDetailsHandler(w http.ResponseWriter, r *http.Request) {
+	// Get character name from URL path
+	vars := mux.Vars(r)
+	characterName := vars["name"]
+
+	if characterName == "" {
+		utils.WriteError(w, http.StatusBadRequest, "Character name is required")
+		return
+	}
+
+	// Sanitize character name
+	characterName = utils.SanitizeString(characterName, 255)
+
+	ctx, cancel := utils.NewDBContext()
+	defer cancel()
+
+	type CharacterDetails struct {
+		Name         string `json:"name"`
+		Sex          string `json:"sex"`
+		Vocation     string `json:"vocation"`
+		Level        int    `json:"level"`
+		Residence    string `json:"residence"`
+		GuildName    string `json:"guildName,omitempty"`
+		GuildRank    string `json:"guildRank,omitempty"`
+		LastSeen     int64  `json:"lastSeen"`
+		Created      int64  `json:"created"`
+		AccountStatus string `json:"accountStatus"`
+		Status       string `json:"status"` // online/offline
+	}
+
+	type Death struct {
+		Time      int64  `json:"time"`
+		Level     int    `json:"level"`
+		KilledBy  string `json:"killedBy"`
+		IsPlayer  bool   `json:"isPlayer"`
+	}
+
+	type CharacterDetailsResponse struct {
+		Character CharacterDetails `json:"character"`
+		Deaths    []Death          `json:"deaths"`
+	}
+
+	// Query character details
+	var char CharacterDetails
+	var vocationID, sexID int
+	var lastLogin, created int64
+	var townName, guildName, guildRank sql.NullString
+	var premdays int
+
+	// Optimized query: Get all data in one query with JOINs (reduces from 3 queries to 1)
+	// Note: players table doesn't have a creation field, using account creation as fallback
+	query := `
+		SELECT 
+			p.id,
+			p.name,
+			p.sex,
+			p.vocation,
+			p.level,
+			p.lastlogin,
+			COALESCE(a.creation, 0) as creation,
+			CASE WHEN po.player_id IS NOT NULL THEN 'online' ELSE 'offline' END as status,
+			COALESCE(t.name, 'Unknown') as town_name,
+			g.name as guild_name,
+			gr.name as guild_rank,
+			COALESCE(a.premdays, 0) as premdays
+		FROM players p
+		LEFT JOIN players_online po ON p.id = po.player_id
+		LEFT JOIN towns t ON p.town_id = t.id
+		LEFT JOIN guild_membership gm ON p.id = gm.player_id
+		LEFT JOIN guilds g ON gm.guild_id = g.id
+		LEFT JOIN guild_ranks gr ON gm.rank_id = gr.id
+		LEFT JOIN accounts a ON p.account_id = a.id
+		WHERE p.name = ?
+		LIMIT 1
+	`
+
+	var playerID int
+	err := database.DB.QueryRowContext(ctx, query, characterName).Scan(
+		&playerID,
+		&char.Name,
+		&sexID,
+		&vocationID,
+		&char.Level,
+		&lastLogin,
+		&created,
+		&char.Status,
+		&townName,
+		&guildName,
+		&guildRank,
+		&premdays,
+	)
+
+	if err == sql.ErrNoRows {
+		utils.WriteError(w, http.StatusNotFound, "Character not found")
+		return
+	}
+
+	if err != nil {
+		if utils.HandleDBError(w, err) {
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, "Error fetching character details")
+		return
+	}
+
+	// Convert vocation ID to name
+	char.Vocation = config.GetVocationName(vocationID)
+
+	// Convert sex ID to string using config
+	char.Sex = config.GetSexName(sexID)
+
+	// Set residence from JOIN result
+	if townName.Valid {
+		char.Residence = townName.String
+	} else {
+		char.Residence = "Unknown"
+	}
+
+	// Set guild info if exists
+	if guildName.Valid {
+		char.GuildName = guildName.String
+	}
+	if guildRank.Valid {
+		char.GuildRank = guildRank.String
+	}
+
+	// Convert timestamps
+	char.LastSeen = lastLogin
+	char.Created = created
+
+	// Set account status (premium/free) - already from JOIN
+	if premdays > 0 {
+		char.AccountStatus = "VIP Account"
+	} else {
+		char.AccountStatus = "Free Account"
+	}
+
+	// Query deaths
+	deathsQuery := `
+		SELECT time, level, killed_by, is_player
+		FROM player_deaths
+		WHERE player_id = ?
+		ORDER BY time DESC
+		LIMIT 20
+	`
+
+	rows, err := database.DB.QueryContext(ctx, deathsQuery, playerID)
+	if err != nil {
+		// Log error but don't fail the request
+		// Deaths are optional
+	}
+
+	deaths := make([]Death, 0)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var death Death
+			if err := rows.Scan(&death.Time, &death.Level, &death.KilledBy, &death.IsPlayer); err == nil {
+				deaths = append(deaths, death)
+			}
+		}
+	}
+
+	response := CharacterDetailsResponse{
+		Character: char,
+		Deaths:    deaths,
+	}
+
+	utils.WriteSuccess(w, http.StatusOK, "Character details retrieved successfully", response)
 }
 

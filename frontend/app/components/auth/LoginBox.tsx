@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { api } from '../../services/api'
 import { authService } from '../../services/auth'
 
@@ -13,12 +14,30 @@ interface LoginResponse {
 }
 
 export default function LoginBox() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [twoFactorToken, setTwoFactorToken] = useState('')
   const [requires2FA, setRequires2FA] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [checkingAuth, setCheckingAuth] = useState(true)
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    const checkAuth = () => {
+      // First, check locally if user has a valid token
+      if (authService.isAuthenticated()) {
+        // Token exists and is valid locally - show dashboard button instead of form
+        setCheckingAuth(false)
+      } else {
+        // No valid token locally - show login form
+        setCheckingAuth(false)
+      }
+    }
+
+    checkAuth()
+  }, [router])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,7 +64,7 @@ export default function LoginBox() {
       authService.saveToken(data.token || '')
       
       // Redirect to account page
-      window.location.href = '/account'
+      router.push('/account')
     } catch (err: any) {
       setError(err.message || 'Invalid email or password. Please try again.')
       // Reset 2FA state on error (unless it's a 2FA-related error)
@@ -56,6 +75,36 @@ export default function LoginBox() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Show loading state while checking authentication
+  if (checkingAuth) {
+    return (
+      <div className="bg-[#252525]/95 backdrop-blur-sm rounded-xl border-2 border-[#505050]/70 p-4 sm:p-6 shadow-2xl ring-2 ring-[#ffd700]/10">
+        <h2 className="text-[#ffd700] text-xl sm:text-2xl font-bold mb-4 sm:mb-6 pb-3 border-b border-[#404040]/40">Account Login</h2>
+        <div className="text-center py-4 text-[#d0d0d0]">Checking authentication...</div>
+      </div>
+    )
+  }
+
+  // If user is authenticated, show dashboard button instead of login form
+  if (authService.isAuthenticated()) {
+    return (
+      <div className="bg-[#252525]/95 backdrop-blur-sm rounded-xl border-2 border-[#505050]/70 p-4 sm:p-6 shadow-2xl ring-2 ring-[#ffd700]/10">
+        <h2 className="text-[#ffd700] text-xl sm:text-2xl font-bold mb-4 sm:mb-6 pb-3 border-b border-[#404040]/40">Account</h2>
+        <div className="space-y-4">
+          <p className="text-[#d0d0d0] text-sm text-center">
+            You are already logged in
+          </p>
+          <button
+            onClick={() => router.push('/account')}
+            className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold py-2.5 sm:py-3 px-4 rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02] text-sm sm:text-base"
+          >
+            Go to Dashboard
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (

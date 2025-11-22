@@ -77,15 +77,18 @@ var VocationMapping = map[string]int{
 	"knight":   4,
 }
 
-// VocationReverseMapping maps vocation IDs to names
-// Automatically generated from VocationMapping in init()
-var VocationReverseMapping map[int]string
-
 // SexMapping maps sex strings to IDs
 var SexMapping = map[string]int{
 	"male":   1,
 	"female": 0,
 }
+
+// VocationReverseMapping maps vocation IDs to names
+// Automatically generated from VocationMapping in init()
+var VocationReverseMapping map[int]string
+// SexReverseMapping maps sex IDs to names
+// Automatically generated from SexMapping in init()
+var SexReverseMapping map[int]string
 
 // LookTypeMapping maps sex IDs to looktype values
 // Male: 128, Female: 136
@@ -94,9 +97,10 @@ var LookTypeMapping = map[int]int{
 	0: 136, // female
 }
 
-// init generates VocationReverseMapping from VocationMapping
+// init generates reverse mappings from forward mappings
 // This ensures we only maintain one source of truth
 func init() {
+	// Generate VocationReverseMapping
 	VocationReverseMapping = make(map[int]string, len(VocationMapping))
 	for name, id := range VocationMapping {
 		// Capitalize first letter safely
@@ -110,6 +114,12 @@ func init() {
 		}
 		VocationReverseMapping[id] = string(runes)
 	}
+
+	// Generate SexReverseMapping
+	SexReverseMapping = make(map[int]string, len(SexMapping))
+	for name, id := range SexMapping {
+		SexReverseMapping[id] = name
+	}
 }
 
 // GetVocationName returns the vocation name for a given vocation ID
@@ -119,5 +129,14 @@ func GetVocationName(vocationID int) string {
 		return name
 	}
 	return UnknownVocation
+}
+
+// GetSexName returns the sex name for a given sex ID
+// Returns the name from SexReverseMapping, or "unknown" if not found
+func GetSexName(sexID int) string {
+	if name, ok := SexReverseMapping[sexID]; ok {
+		return name
+	}
+	return "unknown"
 }
 

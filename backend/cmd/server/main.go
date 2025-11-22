@@ -7,6 +7,7 @@ import (
 
 	"codexaac-backend/internal/database"
 	"codexaac-backend/internal/handlers"
+	"codexaac-backend/pkg/config"
 	"codexaac-backend/pkg/middleware"
 	"codexaac-backend/pkg/utils"
 	"github.com/gorilla/mux"
@@ -31,6 +32,19 @@ func main() {
 		log.Println("   Configure JWT_SECRET in .env file for production")
 	}
 
+	// Initialize server configuration from config.lua
+	serverConfigPath := os.Getenv("SERVER_CONFIG_PATH")
+	if serverConfigPath != "" {
+		if err := config.InitServerConfig(serverConfigPath); err != nil {
+			log.Printf("⚠️  WARNING: Failed to load server config.lua: %v", err)
+			log.Println("   Server configuration will use defaults")
+		} else {
+			log.Println("✅ Server configuration loaded successfully")
+		}
+	} else {
+		log.Println("ℹ️  SERVER_CONFIG_PATH not set, server config will use defaults")
+	}
+
 	// Initialize database
 	if err := database.InitDB(); err != nil {
 		log.Fatalf("Error connecting to database: %v", err)
@@ -50,6 +64,7 @@ func main() {
 	r.HandleFunc("/api/login", handlers.LoginHandler).Methods("POST")
 	r.HandleFunc("/api/register", handlers.RegisterHandler).Methods("POST")
 	r.HandleFunc("/api/logout", handlers.LogoutHandler).Methods("POST")
+	r.HandleFunc("/api/server/config", handlers.GetServerConfigHandler).Methods("GET")
 
 	// Protected routes (require authentication)
 	protected := r.PathPrefix("/api").Subrouter()
@@ -69,6 +84,9 @@ func main() {
 	// Character endpoints
 	protected.HandleFunc("/characters", handlers.GetCharactersHandler).Methods("GET")
 	protected.HandleFunc("/characters", handlers.CreateCharacterHandler).Methods("POST")
+	
+	// Public character details endpoint (anyone can view character info)
+	r.HandleFunc("/api/characters/{name}", handlers.GetCharacterDetailsHandler).Methods("GET")
 
 	// Configure server port
 	port := os.Getenv("PORT")
