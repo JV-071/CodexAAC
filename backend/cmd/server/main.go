@@ -65,6 +65,7 @@ func main() {
 	r.HandleFunc("/api/register", handlers.RegisterHandler).Methods("POST")
 	r.HandleFunc("/api/logout", handlers.LogoutHandler).Methods("POST")
 	r.HandleFunc("/api/server/config", handlers.GetServerConfigHandler).Methods("GET")
+	r.HandleFunc("/api/social/links", handlers.GetSocialLinksHandler).Methods("GET")
 
 	// Protected routes (require authentication)
 	protected := r.PathPrefix("/api").Subrouter()

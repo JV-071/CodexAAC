@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useServerName } from '../../hooks/useServerName'
+import { useSocialLinks } from '../../hooks/useSocialLinks'
 
 interface MenuSection {
   title: string
@@ -10,6 +11,7 @@ interface MenuSection {
 
 export default function Sidebar() {
   const serverName = useServerName()
+  const socialLinks = useSocialLinks()
 
   const menuSections: MenuSection[] = [
     {
@@ -142,12 +144,19 @@ export default function Sidebar() {
       </div>
 
       {/* Discord Button */}
-      <div className="mt-4">
-        <button className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors text-xs">
-          <span>💬</span>
-          Join Server
-        </button>
-      </div>
+      {socialLinks.discord && (
+        <div className="mt-4">
+          <a
+            href={socialLinks.discord}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors text-xs"
+          >
+            <span>💬</span>
+            Join Server
+          </a>
+        </div>
+      )}
     </nav>
   )
 }
