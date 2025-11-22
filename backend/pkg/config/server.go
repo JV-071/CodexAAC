@@ -13,25 +13,34 @@ import (
 
 // ServerConfig holds server configuration from config.lua
 type ServerConfig struct {
-	ServerName      string
-	WorldType       string
-	IP              string
-	LoginPort       int
-	GamePort        int
-	RateExp         int
-	RateSkill       int
-	RateMagic       int
-	RateLoot        int
-	RateSpawn       int
-	MapName         string
-	MapAuthor       string
-	HouseRentPeriod string
-	MaxPlayers      int
-	OwnerName       string
-	OwnerEmail      string
-	URL             string
-	Location        string
-	LastLoaded      time.Time
+	ServerName            string
+	WorldType             string
+	IP                    string
+	LoginPort             int
+	GamePort              int
+	RateExp               int
+	RateSkill             int
+	RateMagic             int
+	RateLoot              int
+	RateSpawn             int
+	MapName               string
+	MapAuthor             string
+	HouseRentPeriod       string
+	MaxPlayers            int
+	OwnerName             string
+	OwnerEmail            string
+	URL                   string
+	Location              string
+	ProtectionLevel      int
+	LowLevelBonusExp     int
+	RateUseStages        bool
+	FragDuration         int // in hours
+	RedSkullDuration     int // in days
+	BlackSkullDuration   int // in days
+	DayKillsToRedSkull   int
+	WeekKillsToRedSkull  int
+	MonthKillsToRedSkull int
+	LastLoaded           time.Time
 }
 
 var (
@@ -50,6 +59,12 @@ type configSetter func(*ServerConfig, string)
 func parseIntValue(value string) (int, bool) {
 	intVal, err := strconv.Atoi(value)
 	return intVal, err == nil
+}
+
+// Helper function to parse boolean values
+func parseBoolValue(value string) bool {
+	value = strings.ToLower(strings.TrimSpace(value))
+	return value == "true" || value == "1"
 }
 
 // configSetters maps config keys (lowercase) to their setter functions
@@ -124,6 +139,63 @@ var configSetters = map[string]configSetter{
 	},
 	"location": func(c *ServerConfig, v string) {
 		c.Location = v
+	},
+	"protectionlevel": func(c *ServerConfig, v string) {
+		if level, ok := parseIntValue(v); ok {
+			c.ProtectionLevel = level
+		}
+	},
+	"lowlevelbonusexp": func(c *ServerConfig, v string) {
+		if exp, ok := parseIntValue(v); ok {
+			c.LowLevelBonusExp = exp
+		}
+	},
+	"rateusestages": func(c *ServerConfig, v string) {
+		c.RateUseStages = parseBoolValue(v)
+	},
+	"timetodecreasefrags": func(c *ServerConfig, v string) {
+		// Parse expression like "24 * 60 * 60 * 1000" (milliseconds) and convert to hours
+		// Format: hours * 60 * 60 * 1000 = milliseconds
+		// We extract the first number which represents hours
+		if strings.Contains(v, "*") {
+			parts := strings.Split(v, "*")
+			if len(parts) > 0 {
+				// First number is the hours
+				if hours, ok := parseIntValue(strings.TrimSpace(parts[0])); ok {
+					c.FragDuration = hours
+				}
+			}
+		} else {
+			// If it's a simple number, assume it's already in hours
+			if hours, ok := parseIntValue(v); ok {
+				c.FragDuration = hours
+			}
+		}
+	},
+	"redskullduration": func(c *ServerConfig, v string) {
+		if days, ok := parseIntValue(v); ok {
+			c.RedSkullDuration = days
+		}
+	},
+	"blackskullduration": func(c *ServerConfig, v string) {
+		if days, ok := parseIntValue(v); ok {
+			c.BlackSkullDuration = days
+		}
+	},
+	"daykillstoredskull": func(c *ServerConfig, v string) {
+		if kills, ok := parseIntValue(v); ok {
+			c.DayKillsToRedSkull = kills
+		}
+	},
+	"weekkillstoredskull": func(c *ServerConfig, v string) {
+		if kills, ok := parseIntValue(v); ok {
+			c.WeekKillsToRedSkull = kills
+		}
+	},
+	"monthkillstoredskull": func(c *ServerConfig, v string) {
+		if kills, ok := parseIntValue(v); ok {
+			c.MonthKillsToRedSkull = kills
+		}
 	},
 }
 
@@ -208,17 +280,17 @@ func parseConfigLine(line string, config *ServerConfig) {
 		return
 	}
 
-	// Skip if value contains expressions (like "60 * 1000") - we only want simple values
-	// This is a simple heuristic: if it contains operators, skip it
-	if strings.ContainsAny(value, "+-*/%") && !strings.HasPrefix(value, `"`) && !strings.HasPrefix(value, `'`) {
+	// Allow expressions for specific fields (like timeToDecreaseFrags)
+	// For other fields, skip if value contains expressions
+	keyLower := strings.ToLower(key)
+	allowExpressions := keyLower == "timetodecreasefrags"
+	
+	if !allowExpressions && strings.ContainsAny(value, "+-*/%") && !strings.HasPrefix(value, `"`) && !strings.HasPrefix(value, `'`) {
 		return
 	}
 
 	// Remove quotes if present (both single and double)
 	value = strings.Trim(value, `"'`)
-
-	// Normalize key to lowercase for case-insensitive matching
-	keyLower := strings.ToLower(key)
 
 	// Look up setter in map and apply if found
 	if setter, exists := configSetters[keyLower]; exists {
@@ -238,25 +310,34 @@ func GetServerConfig() *ServerConfig {
 
 	// Return a copy to prevent external modifications
 	return &ServerConfig{
-		ServerName:      serverConfig.ServerName,
-		WorldType:       serverConfig.WorldType,
-		IP:              serverConfig.IP,
-		LoginPort:       serverConfig.LoginPort,
-		GamePort:        serverConfig.GamePort,
-		RateExp:         serverConfig.RateExp,
-		RateSkill:       serverConfig.RateSkill,
-		RateMagic:       serverConfig.RateMagic,
-		RateLoot:        serverConfig.RateLoot,
-		RateSpawn:       serverConfig.RateSpawn,
-		MapName:         serverConfig.MapName,
-		MapAuthor:       serverConfig.MapAuthor,
-		HouseRentPeriod: serverConfig.HouseRentPeriod,
-		MaxPlayers:      serverConfig.MaxPlayers,
-		OwnerName:       serverConfig.OwnerName,
-		OwnerEmail:      serverConfig.OwnerEmail,
-		URL:             serverConfig.URL,
-		Location:        serverConfig.Location,
-		LastLoaded:      serverConfig.LastLoaded,
+		ServerName:         serverConfig.ServerName,
+		WorldType:          serverConfig.WorldType,
+		IP:                 serverConfig.IP,
+		LoginPort:          serverConfig.LoginPort,
+		GamePort:           serverConfig.GamePort,
+		RateExp:            serverConfig.RateExp,
+		RateSkill:          serverConfig.RateSkill,
+		RateMagic:          serverConfig.RateMagic,
+		RateLoot:           serverConfig.RateLoot,
+		RateSpawn:          serverConfig.RateSpawn,
+		MapName:            serverConfig.MapName,
+		MapAuthor:          serverConfig.MapAuthor,
+		HouseRentPeriod:    serverConfig.HouseRentPeriod,
+		MaxPlayers:         serverConfig.MaxPlayers,
+		OwnerName:          serverConfig.OwnerName,
+		OwnerEmail:         serverConfig.OwnerEmail,
+		URL:                serverConfig.URL,
+		Location:           serverConfig.Location,
+		ProtectionLevel:    serverConfig.ProtectionLevel,
+		LowLevelBonusExp:   serverConfig.LowLevelBonusExp,
+		RateUseStages:      serverConfig.RateUseStages,
+		FragDuration:       serverConfig.FragDuration,
+		RedSkullDuration:   serverConfig.RedSkullDuration,
+		BlackSkullDuration: serverConfig.BlackSkullDuration,
+		DayKillsToRedSkull:   serverConfig.DayKillsToRedSkull,
+		WeekKillsToRedSkull:  serverConfig.WeekKillsToRedSkull,
+		MonthKillsToRedSkull: serverConfig.MonthKillsToRedSkull,
+		LastLoaded:         serverConfig.LastLoaded,
 	}
 }
 
@@ -274,48 +355,66 @@ func GetServerName() string {
 
 // PublicServerConfig represents the public server configuration (for API responses)
 type PublicServerConfig struct {
-	ServerName      string `json:"serverName"`
-	WorldType       string `json:"worldType"`
-	IP              string `json:"ip"`
-	LoginPort       int    `json:"loginPort"`
-	GamePort        int    `json:"gamePort"`
-	RateExp         int    `json:"rateExp"`
-	RateSkill       int    `json:"rateSkill"`
-	RateMagic       int    `json:"rateMagic"`
-	RateLoot        int    `json:"rateLoot"`
-	RateSpawn       int    `json:"rateSpawn"`
-	MapName         string `json:"mapName"`
-	MapAuthor       string `json:"mapAuthor"`
-	HouseRentPeriod string `json:"houseRentPeriod"`
-	MaxPlayers      int    `json:"maxPlayers"`
-	OwnerName       string `json:"ownerName"`
-	OwnerEmail      string `json:"ownerEmail"`
-	URL             string `json:"url"`
-	Location        string `json:"location"`
+	ServerName         string `json:"serverName"`
+	WorldType          string `json:"worldType"`
+	IP                 string `json:"ip"`
+	LoginPort          int    `json:"loginPort"`
+	GamePort           int    `json:"gamePort"`
+	RateExp            int    `json:"rateExp"`
+	RateSkill          int    `json:"rateSkill"`
+	RateMagic          int    `json:"rateMagic"`
+	RateLoot           int    `json:"rateLoot"`
+	RateSpawn          int    `json:"rateSpawn"`
+	MapName            string `json:"mapName"`
+	MapAuthor          string `json:"mapAuthor"`
+	HouseRentPeriod    string `json:"houseRentPeriod"`
+	MaxPlayers         int    `json:"maxPlayers"`
+	OwnerName          string `json:"ownerName"`
+	OwnerEmail         string `json:"ownerEmail"`
+	URL                string `json:"url"`
+	Location           string `json:"location"`
+	ProtectionLevel    int    `json:"protectionLevel"`
+	LowLevelBonusExp   int    `json:"lowLevelBonusExp"`
+	RateUseStages      bool   `json:"rateUseStages"`
+	FragDuration       int    `json:"fragDuration"`
+	RedSkullDuration   int    `json:"redSkullDuration"`
+	BlackSkullDuration int    `json:"blackSkullDuration"`
+	DayKillsToRedSkull   int `json:"dayKillsToRedSkull"`
+	WeekKillsToRedSkull  int `json:"weekKillsToRedSkull"`
+	MonthKillsToRedSkull int `json:"monthKillsToRedSkull"`
 }
 
 // GetPublicServerConfig returns the public server configuration (excludes sensitive data)
 func GetPublicServerConfig() PublicServerConfig {
 	config := GetServerConfig()
 	return PublicServerConfig{
-		ServerName:      config.ServerName,
-		WorldType:       config.WorldType,
-		IP:              config.IP,
-		LoginPort:       config.LoginPort,
-		GamePort:        config.GamePort,
-		RateExp:         config.RateExp,
-		RateSkill:       config.RateSkill,
-		RateMagic:       config.RateMagic,
-		RateLoot:        config.RateLoot,
-		RateSpawn:       config.RateSpawn,
-		MapName:         config.MapName,
-		MapAuthor:       config.MapAuthor,
-		HouseRentPeriod: config.HouseRentPeriod,
-		MaxPlayers:      config.MaxPlayers,
-		OwnerName:       config.OwnerName,
-		OwnerEmail:      config.OwnerEmail,
-		URL:             config.URL,
-		Location:        config.Location,
+		ServerName:          config.ServerName,
+		WorldType:           config.WorldType,
+		IP:                  config.IP,
+		LoginPort:           config.LoginPort,
+		GamePort:            config.GamePort,
+		RateExp:             config.RateExp,
+		RateSkill:           config.RateSkill,
+		RateMagic:           config.RateMagic,
+		RateLoot:            config.RateLoot,
+		RateSpawn:           config.RateSpawn,
+		MapName:             config.MapName,
+		MapAuthor:           config.MapAuthor,
+		HouseRentPeriod:     config.HouseRentPeriod,
+		MaxPlayers:          config.MaxPlayers,
+		OwnerName:           config.OwnerName,
+		OwnerEmail:          config.OwnerEmail,
+		URL:                 config.URL,
+		Location:            config.Location,
+		ProtectionLevel:     config.ProtectionLevel,
+		LowLevelBonusExp:    config.LowLevelBonusExp,
+		RateUseStages:       config.RateUseStages,
+		FragDuration:        config.FragDuration,
+		RedSkullDuration:    config.RedSkullDuration,
+		BlackSkullDuration:  config.BlackSkullDuration,
+		DayKillsToRedSkull:   config.DayKillsToRedSkull,
+		WeekKillsToRedSkull:  config.WeekKillsToRedSkull,
+		MonthKillsToRedSkull: config.MonthKillsToRedSkull,
 	}
 }
 

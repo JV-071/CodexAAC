@@ -57,7 +57,7 @@ const navItems: NavItem[] = [
     icon: 'ℹ️',
     dropdown: [
       { label: 'About', href: '/information/about', icon: '📋' },
-      { label: 'Server Info', href: '/information/server', icon: '🖥️' },
+      { label: 'Server Info', href: '/server-info', icon: '🖥️' },
       { label: 'Rules', href: '/information/rules', icon: '📜' },
       { label: 'FAQ', href: '/information/faq', icon: '❓' },
     ],

@@ -41,6 +41,15 @@ func main() {
 		} else {
 			log.Println("✅ Server configuration loaded successfully")
 		}
+
+		// Initialize stages configuration from stages.lua
+		// stages.lua is expected to be in the same directory as config.lua
+		if err := config.InitStagesConfig(""); err != nil {
+			log.Printf("⚠️  WARNING: Failed to load stages.lua: %v", err)
+			log.Println("   Stages configuration will use defaults")
+		} else {
+			log.Println("✅ Stages configuration loaded successfully")
+		}
 	} else {
 		log.Println("ℹ️  SERVER_CONFIG_PATH not set, server config will use defaults")
 	}
@@ -65,6 +74,7 @@ func main() {
 	r.HandleFunc("/api/register", handlers.RegisterHandler).Methods("POST")
 	r.HandleFunc("/api/logout", handlers.LogoutHandler).Methods("POST")
 	r.HandleFunc("/api/server/config", handlers.GetServerConfigHandler).Methods("GET")
+	r.HandleFunc("/api/server/stages", handlers.GetStagesConfigHandler).Methods("GET")
 	r.HandleFunc("/api/social/links", handlers.GetSocialLinksHandler).Methods("GET")
 
 	// Protected routes (require authentication)
