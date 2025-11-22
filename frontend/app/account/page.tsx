@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { authService } from '../services/auth'
 import { api } from '../services/api'
+import { useServerName } from '../hooks/useServerName'
 import type { Character, Ticket, AccountInfo, CharactersApiResponse, AccountApiResponse } from '../types/account'
 
 // Constants moved outside component to avoid recreation
@@ -27,6 +28,7 @@ export default function AccountManagementPage() {
     const [loading, setLoading] = useState(true)
     const [userLoading, setUserLoading] = useState(true)
     const [error, setError] = useState('')
+    const serverName = useServerName()
 
     // Fetch account information from API
     const fetchAccountInfo = useCallback(async () => {
@@ -264,7 +266,7 @@ export default function AccountManagementPage() {
                                 <div className="flex items-center gap-3">
                                     <span className="text-4xl">💻</span>
                                     <div>
-                                        <p className="text-[#e0e0e0] font-medium">CodexAAC Client</p>
+                                        <p className="text-[#e0e0e0] font-medium">{serverName} Client</p>
                                         <p className="text-[#888] text-xs">Latest version - Windows/Linux/Mac</p>
                                     </div>
                                 </div>

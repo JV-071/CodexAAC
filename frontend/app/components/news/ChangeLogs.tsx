@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useServerName } from '../../hooks/useServerName'
 
 interface ChangeLogEntry {
   date: string
@@ -12,13 +13,14 @@ interface ChangeLogEntry {
 
 export default function ChangeLogs() {
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set())
+  const serverName = useServerName()
 
   const changeLogs: ChangeLogEntry[] = [
     {
       date: 'Nov 18 2025',
       category: '[Site]',
       title: 'Site Update',
-      description: 'Queridos jogadores, é comum está sendo redirecionado para o link CodexAAC. Eternia...',
+      description: `Queridos jogadores, é comum está sendo redirecionado para o link ${serverName}. Eternia...`,
       isImportant: true,
     },
     {

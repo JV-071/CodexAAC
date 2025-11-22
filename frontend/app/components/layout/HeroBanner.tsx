@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useServerName } from '../../hooks/useServerName'
 
 export default function HeroBanner() {
   const images = [
@@ -9,6 +10,7 @@ export default function HeroBanner() {
   ]
 
   const [currentIndex, setCurrentIndex] = useState(0)
+  const serverName = useServerName()
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -47,7 +49,7 @@ export default function HeroBanner() {
           <div className="absolute inset-0 flex flex-col justify-end">
             <div className="w-full px-6 sm:px-8 pb-4 sm:pb-6 space-y-3 sm:space-y-4">
               <div className="text-white max-w-2xl">
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 drop-shadow-lg">Welcome to CodexAAC</h1>
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 drop-shadow-lg">Welcome to {serverName}</h1>
                 <p className="text-base sm:text-lg md:text-xl text-gray-100 drop-shadow-md mb-6">Experience the adventure in our world</p>
               </div>
               

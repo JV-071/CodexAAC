@@ -1,6 +1,10 @@
+'use client'
+
 import Link from 'next/link'
+import { useServerName } from '../../hooks/useServerName'
 
 export default function TermsOfServicePage() {
+  const serverName = useServerName()
   return (
     <div>
         <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -21,7 +25,7 @@ export default function TermsOfServicePage() {
                 <section>
                   <h2 className="text-[#ffd700] text-2xl font-bold mb-4 pb-2 border-b border-[#404040]/40">1. Acceptance of Terms</h2>
                   <p className="text-[#d0d0d0] leading-relaxed">
-                    By accessing and using CodexAAC Tibia Server, you accept and agree to be bound by the terms and provision of this agreement. 
+                    By accessing and using {serverName} Tibia Server, you accept and agree to be bound by the terms and provision of this agreement. 
                     If you do not agree to abide by the above, please do not use this service.
                   </p>
                 </section>
@@ -64,7 +68,7 @@ export default function TermsOfServicePage() {
                   <h2 className="text-[#ffd700] text-2xl font-bold mb-4 pb-2 border-b border-[#404040]/40">5. In-Game Items and Currency</h2>
                   <ul className="list-disc list-inside space-y-2 text-[#d0d0d0] ml-4">
                     <li>All in-game items, characters, and currency are virtual and have no real-world value</li>
-                    <li>Items and characters are the property of CodexAAC and may be modified or removed at our discretion</li>
+                    <li>Items and characters are the property of {serverName} and may be modified or removed at our discretion</li>
                     <li>We are not responsible for lost items due to bugs, server issues, or player error</li>
                     <li>Item restoration is not guaranteed and will be evaluated on a case-by-case basis</li>
                   </ul>
@@ -82,7 +86,7 @@ export default function TermsOfServicePage() {
                 <section>
                   <h2 className="text-[#ffd700] text-2xl font-bold mb-4 pb-2 border-b border-[#404040]/40">7. Limitation of Liability</h2>
                   <p className="text-[#d0d0d0] leading-relaxed">
-                    CodexAAC shall not be liable for any indirect, incidental, special, consequential, or punitive damages, 
+                    {serverName} shall not be liable for any indirect, incidental, special, consequential, or punitive damages, 
                     including but not limited to loss of profits, data, or other intangible losses resulting from your use of the service.
                   </p>
                 </section>

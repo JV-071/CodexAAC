@@ -28,14 +28,17 @@ let cachedConfig: ServerConfig | null = null
 let configPromise: Promise<ServerConfig> | null = null
 
 export const serverService = {
-  // Get server configuration (with caching)
+  /**
+   * Get server configuration (with caching and promise deduplication)
+   * Returns cached config if available, otherwise fetches from API
+   */
   async getConfig(): Promise<ServerConfig> {
     // Return cached config if available
     if (cachedConfig) {
       return cachedConfig
     }
 
-    // If a request is already in progress, return that promise
+    // If a request is already in progress, return that promise (deduplication)
     if (configPromise) {
       return configPromise
     }
@@ -54,13 +57,18 @@ export const serverService = {
     return configPromise
   },
 
-  // Clear cache (useful if config is reloaded)
+  /**
+   * Clear cache (useful if config is reloaded on server)
+   */
   clearCache(): void {
     cachedConfig = null
     configPromise = null
   },
 
-  // Get server name (convenience method)
+  /**
+   * Get server name (convenience method)
+   * Returns cached server name or fetches if needed
+   */
   async getServerName(): Promise<string> {
     const config = await this.getConfig()
     return config.serverName || 'CodexAAC'

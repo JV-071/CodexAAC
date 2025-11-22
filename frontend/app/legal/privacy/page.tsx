@@ -1,6 +1,10 @@
+'use client'
+
 import Link from 'next/link'
+import { useServerName } from '../../hooks/useServerName'
 
 export default function PrivacyPolicyPage() {
+  const serverName = useServerName()
   return (
     <div>
         <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -64,7 +68,7 @@ export default function PrivacyPolicyPage() {
                   <ul className="list-disc list-inside space-y-2 text-[#d0d0d0] ml-4">
                     <li><strong className="text-[#ffd700]">Service Providers:</strong> With trusted third-party service providers who assist in operating our services (hosting, analytics, payment processing)</li>
                     <li><strong className="text-[#ffd700]">Legal Requirements:</strong> When required by law, court order, or government regulation</li>
-                    <li><strong className="text-[#ffd700]">Safety and Security:</strong> To protect the rights, property, or safety of CodexAAC, our users, or others</li>
+                    <li><strong className="text-[#ffd700]">Safety and Security:</strong> To protect the rights, property, or safety of {serverName}, our users, or others</li>
                     <li><strong className="text-[#ffd700]">Public Information:</strong> Character names, levels, and rankings may be displayed publicly on our website</li>
                   </ul>
                 </section>

@@ -1,6 +1,10 @@
+'use client'
+
 import Link from 'next/link'
+import { useServerName } from '../hooks/useServerName'
 
 export default function DownloadPage() {
+  const serverName = useServerName()
   return (
     <div>
         <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -11,7 +15,7 @@ export default function DownloadPage() {
                 <span className="text-[#ffd700]">Download</span>
                 <span className="text-[#3b82f6]"> Client</span>
               </h1>
-              <p className="text-[#d0d0d0] text-sm">Get the official CodexAAC client to start your adventure</p>
+              <p className="text-[#d0d0d0] text-sm">Get the official {serverName} client to start your adventure</p>
             </div>
 
             {/* Main Download Card */}
@@ -24,7 +28,7 @@ export default function DownloadPage() {
                   </div>
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-bold mb-2">
-                  <span className="text-[#ffd700]">Official CodexAAC</span>
+                  <span className="text-[#ffd700]">Official {serverName}</span>
                   <span className="text-[#3b82f6]"> Client</span>
                 </h2>
                 <p className="text-[#888] text-sm">Version 1.0.0</p>
@@ -37,7 +41,7 @@ export default function DownloadPage() {
                   className="inline-flex items-center justify-center gap-3 bg-gradient-to-r from-[#3b82f6] to-[#2563eb] hover:from-[#2563eb] hover:to-[#1d4ed8] text-white font-bold py-4 px-8 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105 text-lg"
                 >
                   <span className="text-2xl">⬇️</span>
-                  <span>Download CodexAAC Client</span>
+                  <span>Download {serverName} Client</span>
                 </a>
                 <div className="mt-4">
                   <Link
@@ -53,7 +57,7 @@ export default function DownloadPage() {
               <div className="bg-[#1f1f1f]/80 rounded-lg border border-[#404040]/50 p-6 mb-6">
                 <h3 className="text-[#ffd700] text-lg font-bold mb-3">About the Client</h3>
                 <p className="text-[#d0d0d0] leading-relaxed mb-3">
-                  An extremely optimized and exclusive CodexAAC client. It features exclusive functions designed 
+                  An extremely optimized and exclusive {serverName} client. It features exclusive functions designed 
                   for all players to enhance their gaming experience. The client is optimized in all aspects, 
                   from performance to user experience.
                 </p>
@@ -91,7 +95,7 @@ export default function DownloadPage() {
                     <span className="text-2xl">🎮</span>
                     <h4 className="text-[#ffd700] font-bold">Enhanced Features</h4>
                   </div>
-                  <p className="text-[#d0d0d0] text-sm">Exclusive features designed specifically for CodexAAC</p>
+                  <p className="text-[#d0d0d0] text-sm">Exclusive features designed specifically for {serverName}</p>
                 </div>
               </div>
 
@@ -100,7 +104,7 @@ export default function DownloadPage() {
                 <h3 className="text-[#ffd700] font-bold mb-3">Disclaimer</h3>
                 <p className="text-[#d0d0d0] text-sm leading-relaxed">
                   The software and any related documentation is provided "as is" without warranty of any kind. 
-                  The entire risk arising out of use of the software remains with you. In no event shall CodexAAC 
+                  The entire risk arising out of use of the software remains with you. In no event shall {serverName} 
                   be liable for any damages to your computer or loss of data.
                 </p>
               </div>

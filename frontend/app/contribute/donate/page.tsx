@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useServerName } from '../../hooks/useServerName'
 
 interface CoinPackage {
     id: string
@@ -26,6 +27,7 @@ export default function DonatePage() {
     const [donorEmail, setDonorEmail] = useState('')
     const [message, setMessage] = useState('')
     const [showPublicly, setShowPublicly] = useState(true)
+    const serverName = useServerName()
 
     const coinPackages = [
         { id: 'pack1', coins: 100, price: 5, icon: '💰' },
@@ -94,7 +96,7 @@ export default function DonatePage() {
                 <div className="text-center mb-12">
                     <h1 className="text-4xl sm:text-5xl font-bold mb-4">
                         <span className="text-[#ffd700]">Support</span>{' '}
-                        <span className="text-[#3b82f6]">CodexAAC</span>
+                        <span className="text-[#3b82f6]">{serverName}</span>
                     </h1>
                     <p className="text-[#d0d0d0] text-lg max-w-2xl mx-auto">
                         Your donation helps us keep the servers online, develop new content,

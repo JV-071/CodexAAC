@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useServerName } from '../../hooks/useServerName'
 
 interface MenuSection {
   title: string
@@ -8,6 +9,8 @@ interface MenuSection {
 }
 
 export default function Sidebar() {
+  const serverName = useServerName()
+
   const menuSections: MenuSection[] = [
     {
       title: 'News',
@@ -15,7 +18,7 @@ export default function Sidebar() {
         { label: 'Latest News', href: '/news', icon: '➤' },
         { label: 'Token (2FA)', href: '/token' },
         { label: 'Event Schedule', href: '/events' },
-        { label: 'CodexAAC Wiki', href: '/wiki' },
+        { label: `${serverName} Wiki`, href: '/wiki' },
       ],
     },
     {
