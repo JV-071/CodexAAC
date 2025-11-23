@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -35,8 +36,24 @@ type DeleteAccountRequest struct {
 const (
 	AccountStatusActive         = "active"
 	AccountStatusPendingDeletion = "pending_deletion"
-	DeletionGracePeriodDays     = 30
+	DefaultDeletionGracePeriodDays = 30
 )
+
+// getDeletionGracePeriodDays returns the grace period in days from environment variable
+// or defaults to 30 days if not set
+func getDeletionGracePeriodDays() int {
+	gracePeriodStr := os.Getenv("ACCOUNT_DELETION_GRACE_PERIOD_DAYS")
+	if gracePeriodStr == "" {
+		return DefaultDeletionGracePeriodDays
+	}
+	
+	gracePeriod, err := strconv.Atoi(gracePeriodStr)
+	if err != nil || gracePeriod < 1 {
+		return DefaultDeletionGracePeriodDays
+	}
+	
+	return gracePeriod
+}
 
 // GetAccountHandler returns account information for the authenticated user
 func GetAccountHandler(w http.ResponseWriter, r *http.Request) {
@@ -276,8 +293,9 @@ func DeleteAccountHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Calculate deletion date (30 days from now)
-	deletionTime := time.Now().AddDate(0, 0, DeletionGracePeriodDays).Unix()
+	// Calculate deletion date (grace period days from now)
+	gracePeriodDays := getDeletionGracePeriodDays()
+	deletionTime := time.Now().AddDate(0, 0, gracePeriodDays).Unix()
 
 	// Update account status
 	_, err = database.DB.ExecContext(ctx,
@@ -293,9 +311,9 @@ func DeleteAccountHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.WriteSuccess(w, http.StatusOK, "Account scheduled for deletion. You have 30 days to cancel.", map[string]interface{}{
+	utils.WriteSuccess(w, http.StatusOK, "Account scheduled for deletion. You have "+strconv.Itoa(gracePeriodDays)+" days to cancel.", map[string]interface{}{
 		"deletionScheduledAt": deletionTime,
-		"gracePeriodDays":     DeletionGracePeriodDays,
+		"gracePeriodDays":     gracePeriodDays,
 	})
 }
 

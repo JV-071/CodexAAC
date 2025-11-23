@@ -34,6 +34,9 @@ Required environment variables:
 - `ENV` - Environment (development/production)
 - `CORS_ALLOWED_ORIGINS` - Comma-separated list of allowed origins for CORS
 
+Optional environment variables:
+- `ACCOUNT_DELETION_GRACE_PERIOD_DAYS` - Grace period in days before account deletion (default: 30)
+
 ## Running
 
 ```bash
