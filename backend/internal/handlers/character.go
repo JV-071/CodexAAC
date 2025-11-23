@@ -375,8 +375,9 @@ func GetCharacterDetailsHandler(w http.ResponseWriter, r *http.Request) {
 	char.LastSeen = lastLogin
 	char.Created = created
 
-	// Set account status (premium/free) - already from JOIN
-	if premdays > 0 {
+	// Set account status (premium/free) - consider freePremium config
+	serverConfig := config.GetServerConfig()
+	if premdays > 0 || serverConfig.FreePremium {
 		char.AccountStatus = "VIP Account"
 	} else {
 		char.AccountStatus = "Free Account"

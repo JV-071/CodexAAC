@@ -34,6 +34,7 @@ type ServerConfig struct {
 	ProtectionLevel      int
 	LowLevelBonusExp     int
 	RateUseStages        bool
+	FreePremium          bool
 	FragDuration         int // in hours
 	RedSkullDuration     int // in days
 	BlackSkullDuration   int // in days
@@ -152,6 +153,9 @@ var configSetters = map[string]configSetter{
 	},
 	"rateusestages": func(c *ServerConfig, v string) {
 		c.RateUseStages = parseBoolValue(v)
+	},
+	"freepremium": func(c *ServerConfig, v string) {
+		c.FreePremium = parseBoolValue(v)
 	},
 	"timetodecreasefrags": func(c *ServerConfig, v string) {
 		// Parse expression like "24 * 60 * 60 * 1000" (milliseconds) and convert to hours
@@ -331,6 +335,7 @@ func GetServerConfig() *ServerConfig {
 		ProtectionLevel:    serverConfig.ProtectionLevel,
 		LowLevelBonusExp:   serverConfig.LowLevelBonusExp,
 		RateUseStages:      serverConfig.RateUseStages,
+		FreePremium:        serverConfig.FreePremium,
 		FragDuration:       serverConfig.FragDuration,
 		RedSkullDuration:   serverConfig.RedSkullDuration,
 		BlackSkullDuration: serverConfig.BlackSkullDuration,
@@ -376,6 +381,7 @@ type PublicServerConfig struct {
 	ProtectionLevel    int    `json:"protectionLevel"`
 	LowLevelBonusExp   int    `json:"lowLevelBonusExp"`
 	RateUseStages      bool   `json:"rateUseStages"`
+	FreePremium        bool   `json:"freePremium"`
 	FragDuration       int    `json:"fragDuration"`
 	RedSkullDuration   int    `json:"redSkullDuration"`
 	BlackSkullDuration int    `json:"blackSkullDuration"`
@@ -409,6 +415,7 @@ func GetPublicServerConfig() PublicServerConfig {
 		ProtectionLevel:     config.ProtectionLevel,
 		LowLevelBonusExp:    config.LowLevelBonusExp,
 		RateUseStages:       config.RateUseStages,
+		FreePremium:         config.FreePremium,
 		FragDuration:        config.FragDuration,
 		RedSkullDuration:    config.RedSkullDuration,
 		BlackSkullDuration:  config.BlackSkullDuration,

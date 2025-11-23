@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"codexaac-backend/internal/database"
+	"codexaac-backend/pkg/config"
 	"codexaac-backend/pkg/middleware"
 	"codexaac-backend/pkg/utils"
 )
@@ -72,9 +73,10 @@ func GetAccountHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Determine account type based on premium days
+	// Determine account type based on premium days and freePremium config
+	serverConfig := config.GetServerConfig()
 	accountType := "Free Account"
-	if premdays > 0 {
+	if premdays > 0 || serverConfig.FreePremium {
 		accountType = "Premium Account"
 	}
 
