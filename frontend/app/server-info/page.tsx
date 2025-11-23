@@ -34,7 +34,7 @@ export default function ServerInfoPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0a0a0a] via-[#151515] to-[#0a0a0a]">
+      <div className="min-h-screen">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
             <div className="text-[#ffd700] text-2xl font-bold mb-4">Loading server information...</div>
@@ -47,7 +47,7 @@ export default function ServerInfoPage() {
 
   if (error || !config) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0a0a0a] via-[#151515] to-[#0a0a0a]">
+      <div className="min-h-screen">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="bg-[#252525]/95 backdrop-blur-sm rounded-xl border-2 border-red-500/70 p-6 shadow-2xl">
             <h2 className="text-red-400 text-xl font-bold mb-4">Error</h2>
@@ -59,7 +59,7 @@ export default function ServerInfoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0a0a0a] via-[#151515] to-[#0a0a0a]">
+    <div className="min-h-screen">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="text-center mb-8">
