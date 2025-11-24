@@ -48,15 +48,14 @@ func MaintenanceMiddleware(next http.Handler) http.Handler {
 			userID, ok := r.Context().Value(UserIDKey).(int)
 			if ok && userID > 0 {
 				// Reuse same context for admin check (optimized: single context for both queries)
-				var secret sql.NullString
+				var pageAccess int
 				err := database.DB.QueryRowContext(ctx,
-					"SELECT secret FROM accounts WHERE id = ?",
+					"SELECT page_access FROM accounts WHERE id = ?",
 					userID,
-				).Scan(&secret)
+				).Scan(&pageAccess)
 
-				// If user is admin, allow access
-				adminSecret := GetAdminSecretValue()
-				if err == nil && secret.Valid && secret.String == adminSecret {
+				// If user has admin access (page_access = 1), allow access
+				if err == nil && pageAccess == 1 {
 					next.ServeHTTP(w, r)
 					return
 				}

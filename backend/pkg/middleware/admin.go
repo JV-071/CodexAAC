@@ -3,24 +3,13 @@ package middleware
 import (
 	"database/sql"
 	"net/http"
-	"os"
 
 	"codexaac-backend/internal/database"
 	"codexaac-backend/pkg/utils"
 )
 
-// GetAdminSecretValue returns the admin secret value from environment variable
-// Falls back to "5" if ADMIN_SECRET is not set (for backward compatibility)
-func GetAdminSecretValue() string {
-	secret := os.Getenv("ADMIN_SECRET")
-	if secret == "" {
-		return "5" // Default fallback for backward compatibility
-	}
-	return secret
-}
-
 // AdminMiddleware verifies that the authenticated user has admin privileges
-// Admin secret value is read from ADMIN_SECRET environment variable (defaults to "5" if not set)
+// Checks the page_access column in accounts table (1 = admin access, 0 = no access)
 // Must be used after AuthMiddleware
 // Optimized: Uses a single query with direct comparison to minimize database round-trips
 // Security: Returns 404 instead of 403 to hide admin routes from non-admins
@@ -36,14 +25,14 @@ func AdminMiddleware(next http.Handler) http.Handler {
 		ctx, cancel := utils.NewDBContext()
 		defer cancel()
 
-		// Optimized query: Check directly if user is admin in a single database call
+		// Optimized query: Check directly if user has admin access in a single database call
 		// Query uses primary key index (id) for optimal performance
-		// Returns only the secret field to minimize data transfer
-		var secret sql.NullString
+		// Returns only the page_access field to minimize data transfer
+		var pageAccess int
 		err := database.DB.QueryRowContext(ctx,
-			"SELECT secret FROM accounts WHERE id = ?",
+			"SELECT page_access FROM accounts WHERE id = ?",
 			userID,
-		).Scan(&secret)
+		).Scan(&pageAccess)
 
 		if err != nil {
 			if err == sql.ErrNoRows {
@@ -60,10 +49,9 @@ func AdminMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// Check if secret equals admin value
+		// Check if page_access is 1 (admin access)
 		// Return 404 instead of 403 to hide admin routes from non-admins
-		adminSecret := GetAdminSecretValue()
-		if !secret.Valid || secret.String != adminSecret {
+		if pageAccess != 1 {
 			utils.WriteError(w, http.StatusNotFound, "Page not found")
 			return
 		}

@@ -3,23 +3,12 @@ package handlers
 import (
 	"database/sql"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
 	"codexaac-backend/internal/database"
 	"codexaac-backend/pkg/utils"
 )
-
-// getAdminSecretValue returns the admin secret value from environment variable
-// Falls back to "5" if ADMIN_SECRET is not set (for backward compatibility)
-func getAdminSecretValue() string {
-	secret := os.Getenv("ADMIN_SECRET")
-	if secret == "" {
-		return "5" // Default fallback for backward compatibility
-	}
-	return secret
-}
 
 // AdminStats represents server statistics
 type AdminStats struct {
@@ -148,7 +137,7 @@ func GetAdminAccountsHandler(w http.ResponseWriter, r *http.Request) {
 	if search != "" {
 		query = `
 			SELECT a.id, a.email, a.premdays, a.coins, a.coins_transferable,
-			       a.creation, a.status, COALESCE(a.secret, ''),
+			       a.creation, a.status, a.page_access,
 			       COALESCE(MAX(p.lastlogin), 0) as lastlogin,
 			       COUNT(DISTINCT p.id) as characters_count
 			FROM accounts a
@@ -162,7 +151,7 @@ func GetAdminAccountsHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		query = `
 			SELECT a.id, a.email, a.premdays, a.coins, a.coins_transferable,
-			       a.creation, a.status, COALESCE(a.secret, ''),
+			       a.creation, a.status, a.page_access,
 			       COALESCE(MAX(p.lastlogin), 0) as lastlogin,
 			       COUNT(DISTINCT p.id) as characters_count
 			FROM accounts a
@@ -189,11 +178,11 @@ func GetAdminAccountsHandler(w http.ResponseWriter, r *http.Request) {
 		var premdays int
 		var creation int64
 		var lastlogin int64
-		var secret string
+		var pageAccess int
 
 		err := rows.Scan(
 			&acc.ID, &acc.Email, &premdays, &acc.Coins, &acc.CoinsTransferable,
-			&creation, &acc.Status, &secret, &lastlogin, &acc.CharactersCount,
+			&creation, &acc.Status, &pageAccess, &lastlogin, &acc.CharactersCount,
 		)
 		if err != nil {
 			continue
@@ -208,7 +197,7 @@ func GetAdminAccountsHandler(w http.ResponseWriter, r *http.Request) {
 
 		acc.PremiumDays = premdays
 		acc.CreatedAt = time.Unix(creation, 0).Format("Jan 2, 2006, 15:04:05")
-		acc.IsAdmin = (secret == getAdminSecretValue())
+		acc.IsAdmin = (pageAccess == 1)
 
 		if lastlogin > 0 {
 			acc.LastLogin = time.Unix(lastlogin, 0).Format("Jan 2, 2006, 15:04:05")
@@ -261,11 +250,10 @@ func GetAdminAccountDetailsHandler(w http.ResponseWriter, r *http.Request) {
 	var premdays int
 	var creation int64
 	var lastlogin int64
-	var secret string
-
+	var pageAccess int
 	err = database.DB.QueryRowContext(ctx,
 		`SELECT a.id, a.email, a.premdays, a.coins, a.coins_transferable,
-		        a.creation, a.status, COALESCE(a.secret, ''),
+		        a.creation, a.status, a.page_access,
 		        COALESCE(MAX(p.lastlogin), 0) as lastlogin,
 		        COUNT(DISTINCT p.id) as characters_count
 		 FROM accounts a
@@ -275,7 +263,7 @@ func GetAdminAccountDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		accountID,
 	).Scan(
 		&acc.ID, &acc.Email, &premdays, &acc.Coins, &acc.CoinsTransferable,
-		&creation, &acc.Status, &secret, &lastlogin, &acc.CharactersCount,
+		&creation, &acc.Status, &pageAccess, &lastlogin, &acc.CharactersCount,
 	)
 
 	if err != nil {
@@ -297,7 +285,7 @@ func GetAdminAccountDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		acc.AccountType = "Free Account"
 	}
 	acc.CreatedAt = time.Unix(creation, 0).Format("Jan 2, 2006, 15:04:05")
-	acc.IsAdmin = (secret == getAdminSecretValue())
+	acc.IsAdmin = (pageAccess == 1)
 
 	if lastlogin > 0 {
 		acc.LastLogin = time.Unix(lastlogin, 0).Format("Jan 2, 2006, 15:04:05")
