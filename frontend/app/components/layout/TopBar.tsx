@@ -114,7 +114,7 @@ export default function TopBar() {
   }
 
   return (
-    <div className="relative z-20">
+    <div className="relative z-20" data-topbar>
       {/* Navigation Menu - Separated with border */}
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <div className="bg-[#252525]/95 backdrop-blur-md border-2 border-[#404040]/60 rounded-lg shadow-xl">

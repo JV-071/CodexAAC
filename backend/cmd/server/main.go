@@ -66,6 +66,7 @@ func main() {
 	// Apply security middlewares
 	r.Use(middleware.SecurityHeadersMiddleware)
 	r.Use(middleware.BodyLimitMiddleware)
+	r.Use(middleware.MaintenanceMiddleware) // Check maintenance mode before other middlewares
 
 	// Public routes
 	r.HandleFunc("/api/health", healthHandler).Methods("GET")
@@ -76,6 +77,7 @@ func main() {
 	r.HandleFunc("/api/server/config", handlers.GetServerConfigHandler).Methods("GET")
 	r.HandleFunc("/api/server/stages", handlers.GetStagesConfigHandler).Methods("GET")
 	r.HandleFunc("/api/social/links", handlers.GetSocialLinksHandler).Methods("GET")
+	r.HandleFunc("/api/maintenance/status", handlers.GetMaintenanceStatusPublicHandler).Methods("GET")
 
 	// Protected routes (require authentication)
 	protected := r.PathPrefix("/api").Subrouter()
@@ -98,6 +100,17 @@ func main() {
 	
 	// Public character details endpoint (anyone can view character info)
 	r.HandleFunc("/api/characters/{name}", handlers.GetCharacterDetailsHandler).Methods("GET")
+
+	// Admin routes (require authentication + admin privileges)
+	admin := r.PathPrefix("/api/admin").Subrouter()
+	admin.Use(middleware.AuthMiddleware)
+	admin.Use(middleware.AdminMiddleware)
+	
+	admin.HandleFunc("/stats", handlers.GetAdminStatsHandler).Methods("GET")
+	admin.HandleFunc("/accounts", handlers.GetAdminAccountsHandler).Methods("GET")
+	admin.HandleFunc("/account", handlers.GetAdminAccountDetailsHandler).Methods("GET")
+	admin.HandleFunc("/maintenance", handlers.GetMaintenanceStatusHandler).Methods("GET")
+	admin.HandleFunc("/maintenance", handlers.ToggleMaintenanceHandler).Methods("POST")
 
 	// Configure server port
 	port := os.Getenv("PORT")

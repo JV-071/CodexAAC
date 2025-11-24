@@ -1,0 +1,308 @@
+package handlers
+
+import (
+	"database/sql"
+	"net/http"
+	"os"
+	"strconv"
+	"time"
+
+	"codexaac-backend/internal/database"
+	"codexaac-backend/pkg/utils"
+)
+
+// getAdminSecretValue returns the admin secret value from environment variable
+// Falls back to "5" if ADMIN_SECRET is not set (for backward compatibility)
+func getAdminSecretValue() string {
+	secret := os.Getenv("ADMIN_SECRET")
+	if secret == "" {
+		return "5" // Default fallback for backward compatibility
+	}
+	return secret
+}
+
+// AdminStats represents server statistics
+type AdminStats struct {
+	TotalAccounts      int `json:"totalAccounts"`
+	ActiveAccounts     int `json:"activeAccounts"`
+	PendingDeletion    int `json:"pendingDeletion"`
+	TotalCharacters    int `json:"totalCharacters"`
+	OnlineCharacters   int `json:"onlineCharacters"`
+	TotalPremiumDays   int `json:"totalPremiumDays"`
+	TotalCoins         int `json:"totalCoins"`
+	AccountsCreated24h int `json:"accountsCreated24h"`
+	AccountsCreated7d   int `json:"accountsCreated7d"`
+	AccountsCreated30d  int `json:"accountsCreated30d"`
+}
+
+// AdminAccount represents account information for admin view
+type AdminAccount struct {
+	ID                  int    `json:"id"`
+	Email               string `json:"email"`
+	AccountType         string `json:"accountType"`
+	PremiumDays         int    `json:"premiumDays"`
+	Coins               int    `json:"coins"`
+	CoinsTransferable   int    `json:"coinsTransferable"`
+	CreatedAt           string `json:"createdAt"`
+	LastLogin           string `json:"lastLogin,omitempty"`
+	Status              string `json:"status"`
+	CharactersCount     int    `json:"charactersCount"`
+	IsAdmin             bool   `json:"isAdmin"`
+}
+
+// GetAdminStatsHandler returns server statistics
+func GetAdminStatsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := utils.NewDBContext()
+	defer cancel()
+
+	stats := AdminStats{}
+
+	// Total accounts
+	_ = database.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM accounts").Scan(&stats.TotalAccounts)
+
+	// Active accounts
+	_ = database.DB.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM accounts WHERE status = 'active'",
+	).Scan(&stats.ActiveAccounts)
+
+	// Pending deletion
+	_ = database.DB.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM accounts WHERE status = 'pending_deletion'",
+	).Scan(&stats.PendingDeletion)
+
+	// Total characters
+	_ = database.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM players").Scan(&stats.TotalCharacters)
+
+	// Online characters
+	_ = database.DB.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM players_online",
+	).Scan(&stats.OnlineCharacters)
+
+	// Total premium days
+	_ = database.DB.QueryRowContext(ctx,
+		"SELECT COALESCE(SUM(premdays), 0) FROM accounts",
+	).Scan(&stats.TotalPremiumDays)
+
+	// Total coins
+	_ = database.DB.QueryRowContext(ctx,
+		"SELECT COALESCE(SUM(coins), 0) FROM accounts",
+	).Scan(&stats.TotalCoins)
+
+	// Accounts created in last 24 hours
+	now := time.Now().Unix()
+	dayAgo := now - (24 * 60 * 60)
+	_ = database.DB.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM accounts WHERE creation >= ?",
+		dayAgo,
+	).Scan(&stats.AccountsCreated24h)
+
+	// Accounts created in last 7 days
+	weekAgo := now - (7 * 24 * 60 * 60)
+	_ = database.DB.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM accounts WHERE creation >= ?",
+		weekAgo,
+	).Scan(&stats.AccountsCreated7d)
+
+	// Accounts created in last 30 days
+	monthAgo := now - (30 * 24 * 60 * 60)
+	_ = database.DB.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM accounts WHERE creation >= ?",
+		monthAgo,
+	).Scan(&stats.AccountsCreated30d)
+
+	utils.WriteSuccess(w, http.StatusOK, "Statistics retrieved successfully", stats)
+}
+
+// GetAdminAccountsHandler returns paginated list of accounts
+func GetAdminAccountsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := utils.NewDBContext()
+	defer cancel()
+
+	// Get pagination parameters
+	pageStr := r.URL.Query().Get("page")
+	limitStr := r.URL.Query().Get("limit")
+	search := r.URL.Query().Get("search")
+
+	page := 1
+	limit := 50
+
+	if pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
+	offset := (page - 1) * limit
+
+	var accounts []AdminAccount
+	var query string
+	var args []interface{}
+
+	// Build query with optional search
+	if search != "" {
+		query = `
+			SELECT a.id, a.email, a.premdays, a.coins, a.coins_transferable,
+			       a.creation, a.status, COALESCE(a.secret, ''),
+			       COALESCE(MAX(p.lastlogin), 0) as lastlogin,
+			       COUNT(DISTINCT p.id) as characters_count
+			FROM accounts a
+			LEFT JOIN players p ON p.account_id = a.id
+			WHERE a.email LIKE ?
+			GROUP BY a.id
+			ORDER BY a.id DESC
+			LIMIT ? OFFSET ?
+		`
+		args = []interface{}{"%" + search + "%", limit, offset}
+	} else {
+		query = `
+			SELECT a.id, a.email, a.premdays, a.coins, a.coins_transferable,
+			       a.creation, a.status, COALESCE(a.secret, ''),
+			       COALESCE(MAX(p.lastlogin), 0) as lastlogin,
+			       COUNT(DISTINCT p.id) as characters_count
+			FROM accounts a
+			LEFT JOIN players p ON p.account_id = a.id
+			GROUP BY a.id
+			ORDER BY a.id DESC
+			LIMIT ? OFFSET ?
+		`
+		args = []interface{}{limit, offset}
+	}
+
+	rows, err := database.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		if utils.HandleDBError(w, err) {
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, "Error fetching accounts")
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var acc AdminAccount
+		var premdays int
+		var creation int64
+		var lastlogin int64
+		var secret string
+
+		err := rows.Scan(
+			&acc.ID, &acc.Email, &premdays, &acc.Coins, &acc.CoinsTransferable,
+			&creation, &acc.Status, &secret, &lastlogin, &acc.CharactersCount,
+		)
+		if err != nil {
+			continue
+		}
+
+		// Determine account type
+		if premdays > 0 {
+			acc.AccountType = "Premium Account"
+		} else {
+			acc.AccountType = "Free Account"
+		}
+
+		acc.PremiumDays = premdays
+		acc.CreatedAt = time.Unix(creation, 0).Format("Jan 2, 2006, 15:04:05")
+		acc.IsAdmin = (secret == getAdminSecretValue())
+
+		if lastlogin > 0 {
+			acc.LastLogin = time.Unix(lastlogin, 0).Format("Jan 2, 2006, 15:04:05")
+		}
+
+		accounts = append(accounts, acc)
+	}
+
+	// Get total count for pagination
+	var totalCount int
+	countQuery := "SELECT COUNT(*) FROM accounts"
+	if search != "" {
+		countQuery += " WHERE email LIKE ?"
+		_ = database.DB.QueryRowContext(ctx, countQuery, "%"+search+"%").Scan(&totalCount)
+	} else {
+		_ = database.DB.QueryRowContext(ctx, countQuery).Scan(&totalCount)
+	}
+
+	response := map[string]interface{}{
+		"accounts":   accounts,
+		"pagination": map[string]interface{}{
+			"page":       page,
+			"limit":      limit,
+			"total":      totalCount,
+			"totalPages": (totalCount + limit - 1) / limit,
+		},
+	}
+
+	utils.WriteSuccess(w, http.StatusOK, "Accounts retrieved successfully", response)
+}
+
+// GetAdminAccountDetailsHandler returns detailed information about a specific account
+func GetAdminAccountDetailsHandler(w http.ResponseWriter, r *http.Request) {
+	accountIDStr := r.URL.Query().Get("id")
+	if accountIDStr == "" {
+		utils.WriteError(w, http.StatusBadRequest, "Account ID is required")
+		return
+	}
+
+	accountID, err := strconv.Atoi(accountIDStr)
+	if err != nil || accountID <= 0 {
+		utils.WriteError(w, http.StatusBadRequest, "Invalid account ID")
+		return
+	}
+
+	ctx, cancel := utils.NewDBContext()
+	defer cancel()
+
+	var acc AdminAccount
+	var premdays int
+	var creation int64
+	var lastlogin int64
+	var secret string
+
+	err = database.DB.QueryRowContext(ctx,
+		`SELECT a.id, a.email, a.premdays, a.coins, a.coins_transferable,
+		        a.creation, a.status, COALESCE(a.secret, ''),
+		        COALESCE(MAX(p.lastlogin), 0) as lastlogin,
+		        COUNT(DISTINCT p.id) as characters_count
+		 FROM accounts a
+		 LEFT JOIN players p ON p.account_id = a.id
+		 WHERE a.id = ?
+		 GROUP BY a.id`,
+		accountID,
+	).Scan(
+		&acc.ID, &acc.Email, &premdays, &acc.Coins, &acc.CoinsTransferable,
+		&creation, &acc.Status, &secret, &lastlogin, &acc.CharactersCount,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			utils.WriteError(w, http.StatusNotFound, "Account not found")
+			return
+		}
+		if utils.HandleDBError(w, err) {
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, "Error fetching account")
+		return
+	}
+
+	acc.PremiumDays = premdays
+	if premdays > 0 {
+		acc.AccountType = "Premium Account"
+	} else {
+		acc.AccountType = "Free Account"
+	}
+	acc.CreatedAt = time.Unix(creation, 0).Format("Jan 2, 2006, 15:04:05")
+	acc.IsAdmin = (secret == getAdminSecretValue())
+
+	if lastlogin > 0 {
+		acc.LastLogin = time.Unix(lastlogin, 0).Format("Jan 2, 2006, 15:04:05")
+	}
+
+	utils.WriteSuccess(w, http.StatusOK, "Account details retrieved successfully", acc)
+}
+

@@ -60,15 +60,36 @@ class ApiService {
         }
 
         if (!response.ok) {
+            // Check if server is under maintenance (503 Service Unavailable)
+            // Backend returns maintenance status in response data
+            if (response.status === 503 && data.data?.maintenance === true) {
+                if (typeof window !== 'undefined') {
+                    // Don't redirect if already on maintenance page to avoid redirect loop
+                    if (window.location.pathname !== '/maintenance') {
+                        window.location.href = '/maintenance';
+                    }
+                }
+                const error = new Error(data.message || 'Server is under maintenance') as any;
+                error.status = response.status;
+                throw error;
+            }
+            
             // If unauthorized, redirect to login (skip for public endpoints)
             // Public endpoints like /login may return 401 for invalid credentials/2FA tokens
             // Cookie will be cleared by backend on logout
             if (response.status === 401 && !isPublic) {
                 if (typeof window !== 'undefined') {
-                    window.location.href = '/login?unauthorized=true';
+                    // Don't redirect if already on login page to avoid redirect loop
+                    if (window.location.pathname !== '/login') {
+                        window.location.href = '/login?unauthorized=true';
+                    }
                 }
             }
-            throw new Error(data.message || 'Request error');
+            
+            // Create error with status code for better error handling
+            const error = new Error(data.message || 'Request error') as any;
+            error.status = response.status;
+            throw error;
         }
 
         return data;

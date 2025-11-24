@@ -708,6 +708,15 @@ model server_config {
   value  String @default("") @db.VarChar(256)
 }
 
+model maintenance {
+  id        Int      @id @default(1)
+  enabled   Boolean  @default(false)
+  message   String?  @db.Text
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+  @@map("maintenance")
+}
+
 model store_history {
   id          Int      @id @default(autoincrement())
   account_id  Int      @db.UnsignedInt
