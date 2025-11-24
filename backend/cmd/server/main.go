@@ -98,8 +98,24 @@ func main() {
 	protected.HandleFunc("/characters", handlers.GetCharactersHandler).Methods("GET")
 	protected.HandleFunc("/characters", handlers.CreateCharacterHandler).Methods("POST")
 	
+	// Guild endpoints
+	protected.HandleFunc("/guilds", handlers.CreateGuildHandler).Methods("POST")
+	protected.HandleFunc("/guilds/invites", handlers.GetPendingInvitesHandler).Methods("GET")
+	protected.HandleFunc("/guilds/{name}/invite", handlers.InvitePlayerHandler).Methods("POST")
+	protected.HandleFunc("/guilds/{name}/accept-invite", handlers.AcceptInviteHandler).Methods("POST")
+	protected.HandleFunc("/guilds/{name}/leave", handlers.LeaveGuildHandler).Methods("POST")
+	protected.HandleFunc("/guilds/{name}/kick", handlers.KickPlayerHandler).Methods("POST")
+	
 	// Public character details endpoint (anyone can view character info)
 	r.HandleFunc("/api/characters/{name}", handlers.GetCharacterDetailsHandler).Methods("GET")
+	
+	// Public guild endpoints (anyone can view guild info, but optional auth for personalized info)
+	r.HandleFunc("/api/guilds", handlers.GetGuildsHandler).Methods("GET")
+	
+	// Guild details with optional auth (to show invite button if user is owner/member)
+	guildDetailsRouter := r.PathPrefix("/api/guilds/{name}").Subrouter()
+	guildDetailsRouter.Use(middleware.OptionalAuthMiddleware)
+	guildDetailsRouter.HandleFunc("", handlers.GetGuildDetailsHandler).Methods("GET")
 
 	// Admin routes (require authentication + admin privileges)
 	admin := r.PathPrefix("/api/admin").Subrouter()
