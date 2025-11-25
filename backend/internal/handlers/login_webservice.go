@@ -23,26 +23,23 @@ type TibiaClientErrorResponse struct {
 }
 
 type TibiaClientCharacter struct {
-	WorldID  int    `json:"worldid"`
-	Name     string `json:"name"`
-	Level    int    `json:"level"`
-	Vocation struct {
-		ID   int    `json:"id"`
-		Name string `json:"name"`
-	} `json:"vocation"`
-	Outfit struct {
-		LookType   int `json:"looktype"`
-		LookHead   int `json:"lookhead"`
-		LookBody   int `json:"lookbody"`
-		LookLegs   int `json:"looklegs"`
-		LookFeet   int `json:"lookfeet"`
-		LookAddons int `json:"lookaddons"`
-	} `json:"outfit"`
-	LastLogin int64  `json:"lastLogin"`
-	IsMale    bool   `json:"ismale"`
-	Tutorial  bool   `json:"tutorial"`
-	IsMain    bool   `json:"isMain"`
-	World     string `json:"world"`
+	WorldID    int    `json:"worldid"`
+	Name       string `json:"name"`
+	IsMale     bool   `json:"ismale"`
+	Tutorial   bool   `json:"tutorial"`
+	Level      int    `json:"level"`
+	Vocation   string `json:"vocation"`
+	OutfitID   int    `json:"outfitid"`
+	HeadColor  int    `json:"headcolor"`
+	TorsoColor int    `json:"torsocolor"`
+	LegsColor  int    `json:"legscolor"`
+	DetailColor int   `json:"detailcolor"`
+	AddonsFlags int   `json:"addonsflags"`
+	IsHidden   bool   `json:"ishidden"`
+	IsTournamentParticipant bool `json:"istournamentparticipant"`
+	IsMainCharacter bool `json:"ismaincharacter"`
+	DailyRewardState int `json:"dailyrewardstate"`
+	RemainingDailyTournamentPlaytime bool `json:"remainingdailytournamentplaytime"`
 }
 
 type TibiaClientWorld struct {
@@ -153,8 +150,16 @@ func TibiaClientLoginHandler(w http.ResponseWriter, r *http.Request) {
 	serverConfig := config.GetServerConfig()
 
 	rows, err := database.DB.QueryContext(ctx,
-		`SELECT p.name, p.level, p.vocation, p.looktype, p.lookhead, p.lookbody,
-		        p.looklegs, p.lookfeet, p.lookaddons, p.lastlogin, p.sex
+		`SELECT p.name, p.level, p.vocation, 
+		        COALESCE(p.looktype, 128) as looktype,
+		        COALESCE(p.lookhead, 0) as lookhead,
+		        COALESCE(p.lookbody, 0) as lookbody,
+		        COALESCE(p.looklegs, 0) as looklegs,
+		        COALESCE(p.lookfeet, 0) as lookfeet,
+		        COALESCE(p.lookaddons, 0) as lookaddons,
+		        p.lastlogin, p.sex,
+		        COALESCE(p.istutorial, 0) as istutorial,
+		        COALESCE(p.isreward, 0) as isreward
 		 FROM players p
 		 WHERE p.account_id = ? AND p.deletion = 0
 		 ORDER BY p.name ASC`,
@@ -172,25 +177,35 @@ func TibiaClientLoginHandler(w http.ResponseWriter, r *http.Request) {
 		var vocationID int
 		var sex int
 		var lastLoginTime int64
+		var isTutorial, isReward int
 
 		if err := rows.Scan(
 			&char.Name, &char.Level, &vocationID,
-			&char.Outfit.LookType, &char.Outfit.LookHead, &char.Outfit.LookBody,
-			&char.Outfit.LookLegs, &char.Outfit.LookFeet, &char.Outfit.LookAddons,
-			&lastLoginTime, &sex,
+			&char.OutfitID, &char.HeadColor, &char.TorsoColor,
+			&char.LegsColor, &char.DetailColor, &char.AddonsFlags,
+			&lastLoginTime, &sex, &isTutorial, &isReward,
 		); err != nil {
 			continue
 		}
 
 		char.WorldID = 0
-		char.Vocation.ID = vocationID
-		char.Vocation.Name = config.GetVocationName(vocationID)
-		char.Outfit.LookType = char.Outfit.LookType
-		char.LastLogin = lastLoginTime
+		char.Vocation = config.GetVocationName(vocationID)
 		char.IsMale = (sex == 1)
-		char.Tutorial = false
-		char.IsMain = false
-		char.World = serverConfig.ServerName
+		
+		if char.OutfitID == 0 {
+			if defaultLookType, ok := config.LookTypeMapping[sex]; ok {
+				char.OutfitID = defaultLookType
+			} else {
+				char.OutfitID = 128
+			}
+		}
+		
+		char.Tutorial = (isTutorial == 1)
+		char.IsHidden = false
+		char.IsTournamentParticipant = false
+		char.IsMainCharacter = false
+		char.DailyRewardState = isReward
+		char.RemainingDailyTournamentPlaytime = false
 
 		characters = append(characters, char)
 	}
@@ -224,14 +239,17 @@ func TibiaClientLoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	premiumUntil := time.Now().Unix()
+	isPremium := premdays > 0 || serverConfig.FreePremium
 	if premdays > 0 {
 		premiumUntil = time.Now().Unix() + int64(premdays*86400)
+	} else if serverConfig.FreePremium {
+		premiumUntil = time.Now().Unix() + (365 * 24 * 60 * 60)
 	}
 
 	session := TibiaClientSession{
 		SessionKey:                   req.Email + "\n" + req.Password,
 		LastLoginTime:                0,
-		IsPremium:                    premdays > 0,
+		IsPremium:                    isPremium,
 		PremiumUntil:                 premiumUntil,
 		Status:                       "active",
 		ReturnerNotification:         false,
