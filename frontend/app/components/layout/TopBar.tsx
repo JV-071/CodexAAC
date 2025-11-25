@@ -75,7 +75,7 @@ const navItems: NavItem[] = [
     label: 'Community',
     icon: '👥',
     dropdown: [
-      { label: 'Online Players', href: '/community/players', icon: '👤' },
+      { label: 'Online Players', href: '/players-online', icon: '👤' },
       { label: 'Guilds', href: '/guilds', icon: '🛡️' },
       { label: 'Houses', href: '/community/houses', icon: '🏠' },
       { label: 'Latest Deaths', href: '/community/deaths', icon: '💀' },

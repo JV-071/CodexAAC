@@ -100,7 +100,7 @@ func main() {
 	protected.HandleFunc("/guilds/{name}/kick", handlers.KickPlayerHandler).Methods("POST")
 	
 	r.HandleFunc("/api/characters/{name}", handlers.GetCharacterDetailsHandler).Methods("GET")
-	
+	r.HandleFunc("/api/players/online", handlers.GetOnlinePlayersHandler).Methods("GET")
 	r.HandleFunc("/api/guilds", handlers.GetGuildsHandler).Methods("GET")
 	
 	guildDetailsRouter := r.PathPrefix("/api/guilds/{name}").Subrouter()

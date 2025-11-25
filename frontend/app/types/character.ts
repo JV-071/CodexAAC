@@ -1,10 +1,4 @@
-export interface Character {
-  id: number
-  name: string
-  vocation: string
-  level: number
-  world: string
-  status: 'online' | 'offline'
+export interface Outfit {
   lookType: number
   lookHead: number
   lookBody: number
@@ -13,7 +7,16 @@ export interface Character {
   lookAddons: number
 }
 
-export interface CharacterDetails {
+export interface Character extends Outfit {
+  id: number
+  name: string
+  vocation: string
+  level: number
+  world: string
+  status: 'online' | 'offline'
+}
+
+export interface CharacterDetails extends Outfit {
   name: string
   sex: string
   vocation: string
@@ -25,12 +28,12 @@ export interface CharacterDetails {
   created: number
   accountStatus: string
   status: string
-  lookType: number
-  lookHead: number
-  lookBody: number
-  lookLegs: number
-  lookFeet: number
-  lookAddons: number
+}
+
+export interface OnlinePlayer extends Outfit {
+  name: string
+  level: number
+  vocation: string
 }
 
 export interface Death {
@@ -53,3 +56,14 @@ export interface ApiResponse<T> {
 
 export interface CharactersApiResponse extends ApiResponse<Character[]> {}
 
+export interface PaginationInfo {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
+export interface OnlinePlayersResponse {
+  players: OnlinePlayer[]
+  pagination: PaginationInfo
+}

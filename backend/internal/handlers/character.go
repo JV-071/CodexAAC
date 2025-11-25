@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"codexaac-backend/internal/database"
@@ -407,5 +408,130 @@ func GetCharacterDetailsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteSuccess(w, http.StatusOK, "Character details retrieved successfully", response)
+}
+
+type OnlinePlayer struct {
+	Name       string `json:"name"`
+	Level      int    `json:"level"`
+	Vocation   string `json:"vocation"`
+	LookType   int    `json:"lookType"`
+	LookHead   int    `json:"lookHead"`
+	LookBody   int    `json:"lookBody"`
+	LookLegs   int    `json:"lookLegs"`
+	LookFeet   int    `json:"lookFeet"`
+	LookAddons int    `json:"lookAddons"`
+}
+
+func GetOnlinePlayersHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := utils.NewDBContext()
+	defer cancel()
+
+	pageStr := r.URL.Query().Get("page")
+	limitStr := r.URL.Query().Get("limit")
+	search := r.URL.Query().Get("search")
+	search = strings.TrimSpace(search)
+
+	page := 1
+	limit := 50
+
+	if pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 200 {
+			limit = l
+		}
+	}
+
+	offset := (page - 1) * limit
+
+	query := `
+		SELECT 
+			p.name,
+			p.level,
+			p.vocation,
+			COALESCE(NULLIF(p.looktype, 0), 128) as looktype,
+			COALESCE(p.lookhead, 0) as lookhead,
+			COALESCE(p.lookbody, 0) as lookbody,
+			COALESCE(p.looklegs, 0) as looklegs,
+			COALESCE(p.lookfeet, 0) as lookfeet,
+			COALESCE(p.lookaddons, 0) as lookaddons
+		FROM players_online po
+		INNER JOIN players p ON po.player_id = p.id
+		WHERE p.deletion = 0
+	`
+	
+	args := make([]interface{}, 0, 3)
+	if search != "" {
+		query += " AND p.name LIKE ?"
+		args = append(args, "%"+search+"%")
+	}
+	query += " ORDER BY p.level DESC, p.name ASC LIMIT ? OFFSET ?"
+	args = append(args, limit, offset)
+
+	rows, err := database.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		if utils.HandleDBError(w, err) {
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, "Error fetching online players")
+		return
+	}
+	defer rows.Close()
+
+	players := make([]OnlinePlayer, 0, limit)
+	for rows.Next() {
+		var player OnlinePlayer
+		var vocationID int
+
+		if err := rows.Scan(
+			&player.Name,
+			&player.Level,
+			&vocationID,
+			&player.LookType,
+			&player.LookHead,
+			&player.LookBody,
+			&player.LookLegs,
+			&player.LookFeet,
+			&player.LookAddons,
+		); err != nil {
+			continue
+		}
+
+		player.Vocation = config.GetVocationName(vocationID)
+		players = append(players, player)
+	}
+
+	var totalCount int
+	countQuery := `
+		SELECT COUNT(*)
+		FROM players_online po
+		INNER JOIN players p ON po.player_id = p.id
+		WHERE p.deletion = 0
+	`
+	countArgs := make([]interface{}, 0, 1)
+	if search != "" {
+		countQuery += " AND p.name LIKE ?"
+		countArgs = append(countArgs, "%"+search+"%")
+	}
+	err = database.DB.QueryRowContext(ctx, countQuery, countArgs...).Scan(&totalCount)
+	if err != nil {
+		totalCount = len(players)
+	}
+
+	response := map[string]interface{}{
+		"players": players,
+		"pagination": map[string]interface{}{
+			"page":       page,
+			"limit":      limit,
+			"total":      totalCount,
+			"totalPages": (totalCount + limit - 1) / limit,
+		},
+	}
+
+	utils.WriteSuccess(w, http.StatusOK, "Online players retrieved successfully", response)
 }
 
