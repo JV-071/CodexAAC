@@ -203,18 +203,18 @@ export default function CharacterDetailsPage() {
                 </div>
               )}
               <div>
+                <span className="text-[#888] text-sm">Account Status:</span>
+                <p className={`font-medium ${character.accountStatus === 'VIP Account' ? 'text-green-400' : 'text-[#e0e0e0]'}`}>
+                  {character.accountStatus}
+                </p>
+              </div>
+              <div>
                 <span className="text-[#888] text-sm">Last Seen:</span>
                 <p className="text-[#e0e0e0] font-medium">{formatDate(character.lastSeen)}</p>
               </div>
               <div>
                 <span className="text-[#888] text-sm">Created:</span>
                 <p className="text-[#e0e0e0] font-medium">{formatDate(character.created)}</p>
-              </div>
-              <div className="md:col-span-2">
-                <span className="text-[#888] text-sm">Account Status:</span>
-                <p className={`font-medium ${character.accountStatus === 'VIP Account' ? 'text-green-400' : 'text-[#e0e0e0]'}`}>
-                  {character.accountStatus}
-                </p>
               </div>
               </div>
             </div>
