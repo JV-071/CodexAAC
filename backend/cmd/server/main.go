@@ -101,6 +101,7 @@ func main() {
 	
 	r.HandleFunc("/api/characters/{name}", handlers.GetCharacterDetailsHandler).Methods("GET")
 	r.HandleFunc("/api/players/online", handlers.GetOnlinePlayersHandler).Methods("GET")
+	r.HandleFunc("/api/changelogs", handlers.GetChangelogsHandler).Methods("GET")
 	r.HandleFunc("/api/guilds", handlers.GetGuildsHandler).Methods("GET")
 	
 	guildDetailsRouter := r.PathPrefix("/api/guilds/{name}").Subrouter()
@@ -116,6 +117,8 @@ func main() {
 	admin.HandleFunc("/account", handlers.GetAdminAccountDetailsHandler).Methods("GET")
 	admin.HandleFunc("/maintenance", handlers.GetMaintenanceStatusHandler).Methods("GET")
 	admin.HandleFunc("/maintenance", handlers.ToggleMaintenanceHandler).Methods("POST")
+	admin.HandleFunc("/changelogs", handlers.CreateChangelogHandler).Methods("POST")
+	admin.HandleFunc("/changelogs/{id}", handlers.DeleteChangelogHandler).Methods("DELETE")
 
 	port := os.Getenv("PORT")
 	if port == "" {

@@ -704,6 +704,20 @@ model players_online {
   player_id Int @id
 }
 
+model changelogs {
+  id          Int      @id @default(autoincrement())
+  version     String   @db.VarChar(50)
+  title       String   @db.VarChar(255)
+  description String?  @db.Text
+  type        String   @default("update") @db.VarChar(50)
+  created_at  DateTime @default(now()) @db.Timestamp(0)
+  created_by  Int?     @db.UnsignedInt
+
+  @@index([created_at], map: "created_at")
+  @@index([version], map: "version")
+  @@map("changelogs")
+}
+
 model server_config {
   config String @id @db.VarChar(50)
   value  String @default("") @db.VarChar(256)

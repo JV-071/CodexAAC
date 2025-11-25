@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { api } from '../../services/api'
 import { makeOutfit } from '../../utils/outfit'
+import { formatDateTime } from '../../utils/date'
 import type { JSX } from 'react'
 import type { CharacterDetails, Death, CharacterDetailsResponse } from '../../types/character'
 
@@ -38,17 +39,6 @@ export default function CharacterDetailsPage() {
     }
   }, [characterName])
 
-  const formatDate = (timestamp: number): string => {
-    if (timestamp === 0) return 'Never'
-    const date = new Date(timestamp * 1000)
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
 
   const formatDeathDescription = (death: Death): JSX.Element => {
     const parts: string[] = []
@@ -210,11 +200,11 @@ export default function CharacterDetailsPage() {
               </div>
               <div>
                 <span className="text-[#888] text-sm">Last Seen:</span>
-                <p className="text-[#e0e0e0] font-medium">{formatDate(character.lastSeen)}</p>
+                <p className="text-[#e0e0e0] font-medium">{formatDateTime(character.lastSeen, 'Nunca')}</p>
               </div>
               <div>
                 <span className="text-[#888] text-sm">Created:</span>
-                <p className="text-[#e0e0e0] font-medium">{formatDate(character.created)}</p>
+                <p className="text-[#e0e0e0] font-medium">{formatDateTime(character.created)}</p>
               </div>
               </div>
             </div>
@@ -241,7 +231,7 @@ export default function CharacterDetailsPage() {
                         className="border-b border-[#404040]/30 hover:bg-[#1a1a1a]/50 transition-all"
                       >
                         <td className="py-3 px-2 text-[#d0d0d0] text-sm">
-                          {formatDate(death.time)}
+                          {formatDateTime(death.time)}
                         </td>
                         <td className="py-3 px-2 text-[#d0d0d0] text-sm">
                           {formatDeathDescription(death)}

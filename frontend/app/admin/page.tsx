@@ -1,14 +1,15 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo, memo } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '../services/api'
-import type { AdminStats, AdminAccountsResponse, AdminAccount } from '../types/admin'
+import CreateChangelogSection from '../components/admin/CreateChangelogSection'
+import ManageChangelogs from '../components/admin/ManageChangelogs'
+import type { AdminStats } from '../types/admin'
 import type { ApiResponse } from '../types/account'
 
 // Constants moved outside component to avoid recreation
 const SKELETON_CARDS = Array.from({ length: 4 }, (_, i) => i) // 4 cards: Total Accounts, Pending Deletion, Online Characters, Total Characters
-const ACCOUNTS_PER_PAGE = 50
 
 const handleAdminError = (err: any, router: { replace: (path: string) => void }): boolean => {
     const status = err.status || err.response?.status
@@ -32,65 +33,6 @@ const StatCard = memo(({ title, value, icon, color }: { title: string; value: nu
 ))
 StatCard.displayName = 'StatCard'
 
-// Memoized AccountRow component to avoid re-renders
-const AccountRow = memo(({ account }: { account: AdminAccount }) => (
-    <tr className="border-b border-[#404040]/50 hover:bg-[#1a1a1a]/50 transition-colors">
-        <td className="py-4 px-4 text-[#e0e0e0]">
-            <span className="font-mono text-sm">{account.id}</span>
-            {account.isAdmin && (
-                <span className="ml-2 px-2 py-1 bg-[#ffd700] text-[#0a0a0a] text-xs font-bold rounded">
-                    ADMIN
-                </span>
-            )}
-        </td>
-        <td className="py-4 px-4 text-[#e0e0e0]">{account.email}</td>
-        <td className="py-4 px-4">
-            <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    account.accountType === 'Premium Account'
-                        ? 'bg-green-900/30 text-green-400 border border-green-600'
-                        : 'bg-red-900/30 text-red-400 border border-red-600'
-                }`}
-            >
-                {account.accountType}
-            </span>
-        </td>
-        <td className="py-4 px-4 text-[#e0e0e0]">
-            {account.premiumDays > 0 ? (
-                <span className="text-yellow-400 font-semibold">
-                    {account.premiumDays} days
-                </span>
-            ) : (
-                <span className="text-[#888]">-</span>
-            )}
-        </td>
-        <td className="py-4 px-4 text-[#e0e0e0]">
-            <span className="text-[#ffd700] font-semibold">
-                {account.coins.toLocaleString()}
-            </span>
-        </td>
-        <td className="py-4 px-4 text-[#e0e0e0]">{account.charactersCount}</td>
-        <td className="py-4 px-4">
-            <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    account.status === 'active'
-                        ? 'bg-green-900/30 text-green-400 border border-green-600'
-                        : account.status === 'pending_deletion'
-                        ? 'bg-red-900/30 text-red-400 border border-red-600'
-                        : 'bg-yellow-900/30 text-yellow-400 border border-yellow-600'
-                }`}
-            >
-                {account.status === 'active' 
-                    ? 'Active' 
-                    : account.status === 'pending_deletion' 
-                    ? 'Pending Deletion' 
-                    : account.status}
-            </span>
-        </td>
-        <td className="py-4 px-4 text-[#888] text-sm">{account.createdAt}</td>
-    </tr>
-))
-AccountRow.displayName = 'AccountRow'
 
 // Memoized StatsGrid to avoid re-renders when other state changes
 const StatsGrid = memo(({ stats }: { stats: AdminStats }) => (
@@ -106,19 +48,9 @@ StatsGrid.displayName = 'StatsGrid'
 export default function AdminPage() {
     const router = useRouter()
     const [stats, setStats] = useState<AdminStats | null>(null)
-    const [accounts, setAccounts] = useState<AdminAccount[]>([])
     const [loading, setLoading] = useState(true)
-    const [accountsLoading, setAccountsLoading] = useState(false)
     const [error, setError] = useState('')
-    const [page, setPage] = useState(1)
-    const [search, setSearch] = useState('')
     const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
-    const [pagination, setPagination] = useState({
-        page: 1,
-        limit: 50,
-        total: 0,
-        totalPages: 1,
-    })
 
     useEffect(() => {
         const checkAdminAccess = async () => {
@@ -141,63 +73,6 @@ export default function AdminPage() {
         checkAdminAccess()
     }, [router])
 
-    const fetchAccounts = useCallback(async () => {
-        try {
-            setAccountsLoading(true)
-            setError('') // Clear previous errors
-            const params = new URLSearchParams({
-                page: page.toString(),
-                limit: ACCOUNTS_PER_PAGE.toString(),
-            })
-            if (search.trim()) {
-                params.append('search', search.trim())
-            }
-
-            const response = await api.get<ApiResponse<AdminAccountsResponse>>(
-                `/admin/accounts?${params.toString()}`
-            )
-            if (response && response.data) {
-                setAccounts(response.data.accounts)
-                setPagination(response.data.pagination)
-            }
-        } catch (err: any) {
-            console.error('Error fetching accounts:', err)
-            if (handleAdminError(err, router)) {
-                return
-            }
-            setError('Error loading accounts')
-        } finally {
-            setAccountsLoading(false)
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page, search]) // Removed router from deps - handleAdminError uses it but doesn't need to trigger re-fetch
-
-    useEffect(() => {
-        if (isAuthorized === true) {
-            fetchAccounts()
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isAuthorized, page, search])
-
-    const handleSearch = useCallback((e: React.FormEvent) => {
-        e.preventDefault()
-        setPage(1)
-    }, [])
-
-    const handlePageChange = useCallback((newPage: number) => {
-        setPage(newPage)
-    }, [])
-
-    const paginationInfo = useMemo(() => {
-        if (!pagination.total) return null
-        const start = ((page - 1) * pagination.limit) + 1
-        const end = Math.min(page * pagination.limit, pagination.total)
-        return { start, end, total: pagination.total }
-    }, [page, pagination])
-
-    const handleSearchInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearch(e.target.value)
-    }, [])
 
     if (isAuthorized === false) {
         return null
@@ -250,92 +125,13 @@ export default function AdminPage() {
                     <StatsGrid stats={stats} />
                 ) : null}
 
-                {/* Accounts Table */}
-                <div className="bg-[#252525]/95 backdrop-blur-sm rounded-xl border-2 border-[#505050]/70 p-6 shadow-2xl">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-                        <h2 className="text-2xl font-bold text-[#ffd700]">Manage Accounts</h2>
-                        <form onSubmit={handleSearch} className="flex gap-2">
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={handleSearchInputChange}
-                                placeholder="Search by email..."
-                                className="flex-1 bg-[#1a1a1a] border-2 border-[#404040] rounded-lg px-4 py-2 text-[#e0e0e0] focus:outline-none focus:border-[#ffd700] transition-all"
-                            />
-                            <button
-                                type="submit"
-                                className="bg-[#ffd700] hover:bg-[#ffed4e] text-[#0a0a0a] font-bold px-6 py-2 rounded-lg transition-all"
-                            >
-                                Search
-                            </button>
-                        </form>
-                    </div>
+                {/* Create Changelog Section */}
+                <CreateChangelogSection onSuccess={() => {
+                  window.dispatchEvent(new CustomEvent('changelog-created'))
+                }} />
 
-                    {accountsLoading ? (
-                        <div className="text-center py-12">
-                            <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#ffd700]"></div>
-                            <p className="text-[#888] mt-4">Loading accounts...</p>
-                        </div>
-                    ) : accounts.length === 0 ? (
-                        <div className="text-center py-12">
-                            <p className="text-[#888] text-lg">No accounts found</p>
-                        </div>
-                    ) : (
-                        <>
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b-2 border-[#404040]">
-                                            <th className="text-left py-4 px-4 text-[#ffd700] font-semibold">ID</th>
-                                            <th className="text-left py-4 px-4 text-[#ffd700] font-semibold">Email</th>
-                                            <th className="text-left py-4 px-4 text-[#ffd700] font-semibold">Type</th>
-                                            <th className="text-left py-4 px-4 text-[#ffd700] font-semibold">Premium</th>
-                                            <th className="text-left py-4 px-4 text-[#ffd700] font-semibold">Coins</th>
-                                            <th className="text-left py-4 px-4 text-[#ffd700] font-semibold">Characters</th>
-                                            <th className="text-left py-4 px-4 text-[#ffd700] font-semibold">Status</th>
-                                            <th className="text-left py-4 px-4 text-[#ffd700] font-semibold">Created At</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {accounts.map((account) => (
-                                            <AccountRow key={account.id} account={account} />
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {/* Pagination */}
-                            {pagination.totalPages > 1 && (
-                                <div className="flex items-center justify-between mt-6 pt-6 border-t border-[#404040]">
-                                    {paginationInfo && (
-                                        <p className="text-[#888] text-sm">
-                                            Showing {paginationInfo.start} - {paginationInfo.end} of {paginationInfo.total}
-                                        </p>
-                                    )}
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => handlePageChange(Math.max(1, page - 1))}
-                                            disabled={page === 1}
-                                            className="px-4 py-2 bg-[#404040] hover:bg-[#505050] disabled:bg-[#2a2a2a] disabled:text-[#666] disabled:cursor-not-allowed text-white rounded-lg transition-all"
-                                        >
-                                            Previous
-                                        </button>
-                                        <span className="px-4 py-2 text-[#e0e0e0] flex items-center">
-                                            Page {page} of {pagination.totalPages}
-                                        </span>
-                                        <button
-                                            onClick={() => handlePageChange(Math.min(pagination.totalPages, page + 1))}
-                                            disabled={page === pagination.totalPages}
-                                            className="px-4 py-2 bg-[#404040] hover:bg-[#505050] disabled:bg-[#2a2a2a] disabled:text-[#666] disabled:cursor-not-allowed text-white rounded-lg transition-all"
-                                        >
-                                            Next
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </>
-                    )}
-                </div>
+                {/* Manage Changelogs Section */}
+                <ManageChangelogs />
             </div>
         </div>
     )
