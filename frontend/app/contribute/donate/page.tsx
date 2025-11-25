@@ -80,8 +80,6 @@ export default function DonatePage() {
             return
         }
 
-        // Here you would integrate with payment API
-
         alert(`Thank you for your donation of $${finalAmount}! Redirecting to payment...`)
     }
 

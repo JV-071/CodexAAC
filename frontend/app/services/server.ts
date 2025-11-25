@@ -42,18 +42,14 @@ export const serverService = {
    * Returns cached config if available, otherwise fetches from API
    */
   async getConfig(): Promise<ServerConfig> {
-    // Return cached config if available
     if (cachedConfig) {
       return cachedConfig
     }
 
-    // If a request is already in progress, return that promise (deduplication)
     if (configPromise) {
       return configPromise
     }
 
-    // Fetch config from API
-    // Backend returns: { message, status, data }
     configPromise = api.get<{ message: string; status: string; data: ServerConfig }>('/server/config', { public: true })
       .then(response => {
         cachedConfig = response.data

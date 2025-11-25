@@ -10,13 +10,9 @@ import type { ApiResponse } from '../types/account'
 const SKELETON_CARDS = Array.from({ length: 4 }, (_, i) => i) // 4 cards: Total Accounts, Pending Deletion, Online Characters, Total Characters
 const ACCOUNTS_PER_PAGE = 50
 
-// Helper function to handle admin access errors
-// Optimized: Checks HTTP status code directly instead of parsing error messages
 const handleAdminError = (err: any, router: { replace: (path: string) => void }): boolean => {
-    // Check HTTP status code directly (more reliable than message parsing)
     const status = err.status || err.response?.status
     
-    // If 404, user is not admin - redirect to 404 page (use replace to avoid history entry)
     if (status === 404) {
         router.replace('/not-found')
         return true
@@ -124,8 +120,6 @@ export default function AdminPage() {
         totalPages: 1,
     })
 
-    // Check admin access first, before rendering anything
-    // Optimized: Single request that loads stats if authorized
     useEffect(() => {
         const checkAdminAccess = async () => {
             try {
@@ -135,7 +129,6 @@ export default function AdminPage() {
                     setStats(response.data)
                 }
             } catch (err: any) {
-                // Handle admin access errors (404 = not admin, 401 = not authenticated)
                 if (handleAdminError(err, router)) {
                     return
                 }
@@ -169,7 +162,6 @@ export default function AdminPage() {
             }
         } catch (err: any) {
             console.error('Error fetching accounts:', err)
-            // Handle admin access errors (404 = not admin, 401 = not authenticated)
             if (handleAdminError(err, router)) {
                 return
             }
@@ -180,8 +172,6 @@ export default function AdminPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page, search]) // Removed router from deps - handleAdminError uses it but doesn't need to trigger re-fetch
 
-    // Only fetch accounts if authorized (stats already loaded in checkAdminAccess)
-    // Use separate effect to avoid dependency issues
     useEffect(() => {
         if (isAuthorized === true) {
             fetchAccounts()
@@ -191,7 +181,6 @@ export default function AdminPage() {
 
     const handleSearch = useCallback((e: React.FormEvent) => {
         e.preventDefault()
-        // Reset to page 1 - useEffect will automatically fetch when page or search changes
         setPage(1)
     }, [])
 
@@ -199,7 +188,6 @@ export default function AdminPage() {
         setPage(newPage)
     }, [])
 
-    // Memoize pagination info to avoid recalculation
     const paginationInfo = useMemo(() => {
         if (!pagination.total) return null
         const start = ((page - 1) * pagination.limit) + 1
@@ -207,17 +195,14 @@ export default function AdminPage() {
         return { start, end, total: pagination.total }
     }, [page, pagination])
 
-    // Memoize search input handler to avoid recreating on every render
     const handleSearchInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         setSearch(e.target.value)
     }, [])
 
-    // Don't render anything if not authorized - will redirect to 404
     if (isAuthorized === false) {
         return null
     }
 
-    // Show loading while checking authorization
     if (isAuthorized === null || loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">

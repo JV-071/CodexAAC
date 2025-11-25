@@ -13,7 +13,6 @@ export function useServerName(): string {
 
   useEffect(() => {
     serverService.getServerName().then(setServerName).catch(() => {
-      // Fallback to default on error
       setServerName('CodexAAC')
     })
   }, [])

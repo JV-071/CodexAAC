@@ -25,7 +25,6 @@ export function useSocialLinks(): SocialLinks {
 
   useEffect(() => {
     socialService.getLinks().then(setLinks).catch(() => {
-      // Fallback to empty strings on error (links won't be clickable)
       setLinks({
         facebook: '',
         instagram: '',

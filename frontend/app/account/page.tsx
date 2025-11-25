@@ -30,7 +30,6 @@ export default function AccountManagementPage() {
     const [error, setError] = useState('')
     const serverName = useServerName()
 
-    // Fetch account information from API
     const fetchAccountInfo = useCallback(async () => {
         try {
             setUserLoading(true)
@@ -40,7 +39,6 @@ export default function AccountManagementPage() {
             }
         } catch (err: any) {
             console.error('Error fetching account info:', err)
-            // Set default user on error to prevent UI breakage
             setUser({
                 email: 'Error loading account',
                 accountType: 'Free Account',
@@ -56,7 +54,6 @@ export default function AccountManagementPage() {
         }
     }, [])
 
-    // Fetch characters from API
     const fetchCharacters = useCallback(async () => {
         try {
             setLoading(true)

@@ -75,8 +75,6 @@ export default function CharacterDetailsPage() {
   }
 
   const formatDeathDescription = (death: Death): JSX.Element => {
-    // Parse killed_by string (format: "a brachiodemon, an infernal demon e Kevnive")
-    // Split by comma and " e " (Portuguese "and")
     const parts: string[] = []
     const segments = death.killedBy.split(', ')
     
@@ -97,7 +95,6 @@ export default function CharacterDetailsPage() {
       <span>
         {action} {levelText}{' '}
         {parts.map((part, idx) => {
-          // Check if it's a player name (starts with capital letter, no article)
           const isPlayerName = /^[A-Z][a-zA-Z\s]+$/.test(part) && !/^(A|An|The)\s/.test(part)
           
           return (

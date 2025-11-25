@@ -34,7 +34,6 @@ export default function CreateCharacterPage() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }))
-    // Clear error when user starts typing
     if (error) {
       setError('')
     }

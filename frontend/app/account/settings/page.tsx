@@ -37,7 +37,6 @@ export default function AccountSettingsPage() {
     const [isDeleting, setIsDeleting] = useState(false)
     const [isCanceling, setIsCanceling] = useState(false)
 
-    // Calculate time remaining until deletion (memoized to avoid recalculation on every render)
     const timeRemaining = useMemo(() => {
         if (!userData.deletionScheduledAt) return null
         const now = Math.floor(Date.now() / 1000)
@@ -45,7 +44,6 @@ export default function AccountSettingsPage() {
         return remaining > 0 ? remaining : 0
     }, [userData.deletionScheduledAt])
 
-    // Fetch account information from API
     const fetchAccountInfo = useCallback(async () => {
         try {
             setLoading(true)
@@ -64,7 +62,6 @@ export default function AccountSettingsPage() {
         fetchAccountInfo()
     }, [fetchAccountInfo])
 
-    // Handle account deletion
     const handleDeleteAccount = useCallback(async (password: string) => {
         setIsDeleting(true)
         try {
@@ -81,17 +78,14 @@ export default function AccountSettingsPage() {
         }
     }, [fetchAccountInfo])
 
-    // Handle cancel deletion
     const handleCancelDeletion = useCallback(async () => {
         setIsCanceling(true)
         try {
             await api.post<AccountApiResponse>('/account/cancel-deletion', {})
             setShowCancelModal(false)
             await fetchAccountInfo()
-            // Success - banner will disappear automatically when status changes
         } catch (err: any) {
             console.error('Error canceling deletion:', err)
-            // Could add error state here if needed
         } finally {
             setIsCanceling(false)
         }

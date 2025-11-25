@@ -7,7 +7,6 @@ import { api } from '../../services/api'
 import type { ApiResponse } from '../../types/account'
 import type { GuildDetails, GuildMember, PendingInviteItem, InvitePlayerRequest, AcceptInviteRequest, LeaveGuildRequest, KickPlayerRequest } from '../../types/guild'
 
-// Helper function to get rank badge color
 const getRankBadgeColor = (rank: string) => {
     const rankLower = rank.toLowerCase()
     if (rankLower.includes('leader') && !rankLower.includes('vice')) {
@@ -156,37 +155,30 @@ export default function GuildDetailsPage() {
         fetchGuildDetails()
     }, [fetchGuildDetails])
 
-    // Sort members by rank level, then level, then name (memoized)
     const sortedMembers = useMemo(() => {
         if (!guild?.members) return []
         return [...guild.members].sort((a, b) => {
-            // First sort by rank level (higher first)
             if (a.rankLevel !== b.rankLevel) {
                 return b.rankLevel - a.rankLevel
             }
-            // Then by character level (higher first)
             if (a.level !== b.level) {
                 return b.level - a.level
             }
-            // Finally by name (alphabetical)
             return a.name.localeCompare(b.name)
         })
     }, [guild?.members])
 
-    // Memoize sorted pending invites list for sidebar
     const sortedPendingInvites = useMemo(() => {
         if (!guild?.pendingInvites) return []
         return [...guild.pendingInvites].sort((a, b) => b.inviteDate - a.inviteDate)
     }, [guild?.pendingInvites])
 
-    // Helper to close invite modal and reset state
     const closeInviteModal = useCallback(() => {
         setShowInviteModal(false)
         setInvitePlayerName('')
         setInviteError('')
     }, [])
 
-    // Handle invite player
     const handleInvitePlayer = useCallback(async (e: React.FormEvent) => {
         e.preventDefault()
         if (!invitePlayerName.trim() || !guild) return
@@ -202,18 +194,14 @@ export default function GuildDetailsPage() {
             )
             setSuccess('Player invited successfully!')
             closeInviteModal()
-            // Refresh guild details to update member count
             fetchGuildDetails()
         } catch (err: any) {
-            // Show error in modal, don't redirect
             setInviteError(err.message || 'Error inviting player')
-            // Don't close modal on error so user can see the error message
         } finally {
             setInviteLoading(false)
         }
     }, [invitePlayerName, guild, fetchGuildDetails, closeInviteModal])
 
-    // Handle accept invite
     const handleAcceptInvite = useCallback(async () => {
         if (!guild) return
 
@@ -227,7 +215,6 @@ export default function GuildDetailsPage() {
                 { guildName: guild.name } as AcceptInviteRequest
             )
             setSuccess('You have joined the guild successfully!')
-            // Refresh guild details
             fetchGuildDetails()
         } catch (err: any) {
             setError(err.message || 'Error accepting invite')
@@ -236,12 +223,10 @@ export default function GuildDetailsPage() {
         }
     }, [guild, fetchGuildDetails])
 
-    // Handle leave guild confirmation
     const handleLeaveGuildClick = useCallback(() => {
         setShowLeaveModal(true)
     }, [])
 
-    // Handle leave guild (after confirmation)
     const handleLeaveGuild = useCallback(async () => {
         if (!guild) return
 
@@ -256,7 +241,6 @@ export default function GuildDetailsPage() {
                 { guildName: guild.name } as LeaveGuildRequest
             )
             setSuccess('You have left the guild successfully!')
-            // Redirect to guilds list after 2 seconds
             setTimeout(() => {
                 router.push('/guilds')
             }, 2000)
@@ -267,18 +251,15 @@ export default function GuildDetailsPage() {
         }
     }, [guild, router])
 
-    // Close leave modal
     const closeLeaveModal = useCallback(() => {
         setShowLeaveModal(false)
     }, [])
 
-    // Handle kick player click
     const handleKickPlayerClick = useCallback((member: GuildMember) => {
         setPlayerToKick(member)
         setShowKickModal(true)
     }, [])
 
-    // Handle kick player (after confirmation)
     const handleKickPlayer = useCallback(async () => {
         if (!guild || !playerToKick) return
 
@@ -294,7 +275,6 @@ export default function GuildDetailsPage() {
             )
             setSuccess(`${playerToKick.name} has been kicked from the guild successfully!`)
             setPlayerToKick(null)
-            // Refresh guild details
             fetchGuildDetails()
         } catch (err: any) {
             setError(err.message || 'Error kicking player')
@@ -303,7 +283,6 @@ export default function GuildDetailsPage() {
         }
     }, [guild, playerToKick, fetchGuildDetails])
 
-    // Close kick modal
     const closeKickModal = useCallback(() => {
         setShowKickModal(false)
         setPlayerToKick(null)
@@ -515,7 +494,6 @@ export default function GuildDetailsPage() {
                                     value={invitePlayerName}
                                     onChange={(e) => {
                                         setInvitePlayerName(e.target.value)
-                                        // Clear error when user starts typing
                                         if (inviteError) setInviteError('')
                                     }}
                                     placeholder="Enter player name"

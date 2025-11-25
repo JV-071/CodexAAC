@@ -24,7 +24,6 @@ const TwoFactorAuth = React.memo(() => {
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)
 
-    // Enable 2FA states
     const [showQRCode, setShowQRCode] = useState(false)
     const [qrCodeData, setQrCodeData] = useState<Enable2FAResponse | null>(null)
     const [password, setPassword] = useState('')
@@ -32,7 +31,6 @@ const TwoFactorAuth = React.memo(() => {
     const [disablePassword, setDisablePassword] = useState('')
     const [disableToken, setDisableToken] = useState('')
 
-    // Fetch 2FA status
     const fetchStatus = useCallback(async () => {
         try {
             setLoading(true)
@@ -50,7 +48,6 @@ const TwoFactorAuth = React.memo(() => {
         fetchStatus()
     }, [fetchStatus])
 
-    // Handle enable 2FA
     const handleEnable = useCallback(async () => {
         if (!password) {
             setError('Password is required')
@@ -72,7 +69,6 @@ const TwoFactorAuth = React.memo(() => {
         }
     }, [password])
 
-    // Handle verify 2FA token
     const handleVerify = useCallback(async () => {
         if (!verifyToken || verifyToken.length !== 6) {
             setError('Please enter a valid 6-digit token')
@@ -95,7 +91,6 @@ const TwoFactorAuth = React.memo(() => {
         }
     }, [verifyToken, fetchStatus])
 
-    // Handle disable 2FA
     const handleDisable = useCallback(async () => {
         if (!disablePassword) {
             setError('Password is required')
@@ -124,7 +119,6 @@ const TwoFactorAuth = React.memo(() => {
         }
     }, [disablePassword, disableToken, fetchStatus])
 
-    // Clear messages after 5 seconds
     useEffect(() => {
         if (error || success) {
             const timer = setTimeout(() => {

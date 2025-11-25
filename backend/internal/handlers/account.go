@@ -39,8 +39,6 @@ const (
 	DefaultDeletionGracePeriodDays = 30
 )
 
-// getDeletionGracePeriodDays returns the grace period in days from environment variable
-// or defaults to 30 days if not set
 func getDeletionGracePeriodDays() int {
 	gracePeriodStr := os.Getenv("ACCOUNT_DELETION_GRACE_PERIOD_DAYS")
 	if gracePeriodStr == "" {
@@ -55,9 +53,7 @@ func getDeletionGracePeriodDays() int {
 	return gracePeriod
 }
 
-// GetAccountHandler returns account information for the authenticated user
 func GetAccountHandler(w http.ResponseWriter, r *http.Request) {
-	// Get user ID from context
 	userID, ok := r.Context().Value(middleware.UserIDKey).(int)
 	if !ok {
 		utils.WriteError(w, http.StatusUnauthorized, "Authentication required")
@@ -90,21 +86,16 @@ func GetAccountHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Determine account type based on premium days and freePremium config
 	serverConfig := config.GetServerConfig()
 	accountType := "Free Account"
 	if premdays > 0 || serverConfig.FreePremium {
 		accountType = "Premium Account"
 	}
 
-	// Format creation date
 	createdAt := time.Unix(creation, 0).Format("Jan 2, 2006, 15:04:05")
 
-	// Calculate VIP expiry if premium days > 0
 	var vipExpiry string
 	if premdays > 0 {
-		// Calculate expiry: lastday (when premium was activated) + premdays
-		// If lastday is 0, use creation date as fallback
 		var baseTime int64
 		if lastday > 0 {
 			baseTime = lastday
@@ -115,28 +106,23 @@ func GetAccountHandler(w http.ResponseWriter, r *http.Request) {
 		vipExpiry = expiryTime.Format("Jan 2, 2006, 15:04:05")
 	}
 
-	// Get last login from players table (most recent lastlogin)
 	var lastLogin int64
 	_ = database.DB.QueryRowContext(ctx,
 		"SELECT COALESCE(MAX(lastlogin), 0) FROM players WHERE account_id = ?",
 		userID,
 	).Scan(&lastLogin)
 
-	// Format last login date
 	var lastLoginFormatted string
 	if lastLogin > 0 {
 		lastLoginFormatted = time.Unix(lastLogin, 0).Format("Jan 2, 2006, 15:04:05")
 	}
 
-	// Calculate loyalty points (simplified - can be enhanced later)
-	// For now, using a simple calculation based on account age
 	loyaltyPoints := 0
 	if creation > 0 {
 		accountAgeDays := int(time.Since(time.Unix(creation, 0)).Hours() / 24)
-		loyaltyPoints = accountAgeDays / 30 // 1 point per 30 days
+		loyaltyPoints = accountAgeDays / 30
 	}
 
-	// Determine loyalty title based on points
 	loyaltyTitle := "Scout of Codex"
 	nextTitle := "Sentinel of Codex"
 	nextTitlePoints := 1
@@ -199,16 +185,13 @@ func GetAccountHandler(w http.ResponseWriter, r *http.Request) {
 	utils.WriteSuccess(w, http.StatusOK, "Account information retrieved successfully", accountInfo)
 }
 
-// DeleteAccountHandler schedules account for deletion (soft delete with grace period)
 func DeleteAccountHandler(w http.ResponseWriter, r *http.Request) {
-	// Get user ID from context
 	userID, ok := r.Context().Value(middleware.UserIDKey).(int)
 	if !ok {
 		utils.WriteError(w, http.StatusUnauthorized, "Authentication required")
 		return
 	}
 
-	// Decode request body
 	var req DeleteAccountRequest
 	if err := utils.DecodeJSON(r, &req); err != nil {
 		if errors.Is(err, utils.ErrBodyTooLarge) {
@@ -221,7 +204,6 @@ func DeleteAccountHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate password
 	if req.Password == "" {
 		utils.WriteError(w, http.StatusBadRequest, "Password is required")
 		return
@@ -235,7 +217,6 @@ func DeleteAccountHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := utils.NewDBContext()
 	defer cancel()
 
-	// Verify password
 	var storedPassword string
 	var currentStatus string
 	err := database.DB.QueryRowContext(ctx,
@@ -255,20 +236,17 @@ func DeleteAccountHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if account is already pending deletion
 	if currentStatus == AccountStatusPendingDeletion {
 		utils.WriteError(w, http.StatusBadRequest, "Account is already scheduled for deletion")
 		return
 	}
 
-	// Verify password (constant time comparison)
 	hashedPassword := utils.HashSHA1(req.Password)
 	if storedPassword != hashedPassword {
 		utils.WriteError(w, http.StatusBadRequest, "Invalid password")
 		return
 	}
 
-	// Check if user has any characters online (optimized - using LIMIT 1 for early exit)
 	var exists int
 	err = database.DB.QueryRowContext(ctx,
 		`SELECT 1 
@@ -287,17 +265,14 @@ func DeleteAccountHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// If no error, means at least one character is online
 	if err == nil {
 		utils.WriteError(w, http.StatusBadRequest, "Cannot delete account while characters are online. Please log out all characters first.")
 		return
 	}
 
-	// Calculate deletion date (grace period days from now)
 	gracePeriodDays := getDeletionGracePeriodDays()
 	deletionTime := time.Now().AddDate(0, 0, gracePeriodDays).Unix()
 
-	// Update account status
 	_, err = database.DB.ExecContext(ctx,
 		"UPDATE accounts SET deletion_scheduled_at = ?, status = ? WHERE id = ?",
 		deletionTime, AccountStatusPendingDeletion, userID,
@@ -319,7 +294,6 @@ func DeleteAccountHandler(w http.ResponseWriter, r *http.Request) {
 
 // CancelDeletionHandler cancels scheduled account deletion
 func CancelDeletionHandler(w http.ResponseWriter, r *http.Request) {
-	// Get user ID from context
 	userID, ok := r.Context().Value(middleware.UserIDKey).(int)
 	if !ok {
 		utils.WriteError(w, http.StatusUnauthorized, "Authentication required")
@@ -329,7 +303,6 @@ func CancelDeletionHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := utils.NewDBContext()
 	defer cancel()
 
-	// Check if account is pending deletion
 	var currentStatus string
 	err := database.DB.QueryRowContext(ctx,
 		"SELECT COALESCE(status, 'active') FROM accounts WHERE id = ?",
@@ -353,7 +326,6 @@ func CancelDeletionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Cancel deletion
 	_, err = database.DB.ExecContext(ctx,
 		"UPDATE accounts SET deletion_scheduled_at = NULL, status = ? WHERE id = ?",
 		AccountStatusActive, userID,

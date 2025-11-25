@@ -46,38 +46,30 @@ func GetAdminStatsHandler(w http.ResponseWriter, r *http.Request) {
 
 	stats := AdminStats{}
 
-	// Total accounts
 	_ = database.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM accounts").Scan(&stats.TotalAccounts)
 
-	// Active accounts
 	_ = database.DB.QueryRowContext(ctx,
 		"SELECT COUNT(*) FROM accounts WHERE status = 'active'",
 	).Scan(&stats.ActiveAccounts)
 
-	// Pending deletion
 	_ = database.DB.QueryRowContext(ctx,
 		"SELECT COUNT(*) FROM accounts WHERE status = 'pending_deletion'",
 	).Scan(&stats.PendingDeletion)
 
-	// Total characters
 	_ = database.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM players").Scan(&stats.TotalCharacters)
 
-	// Online characters
 	_ = database.DB.QueryRowContext(ctx,
 		"SELECT COUNT(*) FROM players_online",
 	).Scan(&stats.OnlineCharacters)
 
-	// Total premium days
 	_ = database.DB.QueryRowContext(ctx,
 		"SELECT COALESCE(SUM(premdays), 0) FROM accounts",
 	).Scan(&stats.TotalPremiumDays)
 
-	// Total coins
 	_ = database.DB.QueryRowContext(ctx,
 		"SELECT COALESCE(SUM(coins), 0) FROM accounts",
 	).Scan(&stats.TotalCoins)
 
-	// Accounts created in last 24 hours
 	now := time.Now().Unix()
 	dayAgo := now - (24 * 60 * 60)
 	_ = database.DB.QueryRowContext(ctx,
@@ -85,14 +77,12 @@ func GetAdminStatsHandler(w http.ResponseWriter, r *http.Request) {
 		dayAgo,
 	).Scan(&stats.AccountsCreated24h)
 
-	// Accounts created in last 7 days
 	weekAgo := now - (7 * 24 * 60 * 60)
 	_ = database.DB.QueryRowContext(ctx,
 		"SELECT COUNT(*) FROM accounts WHERE creation >= ?",
 		weekAgo,
 	).Scan(&stats.AccountsCreated7d)
 
-	// Accounts created in last 30 days
 	monthAgo := now - (30 * 24 * 60 * 60)
 	_ = database.DB.QueryRowContext(ctx,
 		"SELECT COUNT(*) FROM accounts WHERE creation >= ?",
@@ -107,7 +97,6 @@ func GetAdminAccountsHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := utils.NewDBContext()
 	defer cancel()
 
-	// Get pagination parameters
 	pageStr := r.URL.Query().Get("page")
 	limitStr := r.URL.Query().Get("limit")
 	search := r.URL.Query().Get("search")
@@ -133,7 +122,6 @@ func GetAdminAccountsHandler(w http.ResponseWriter, r *http.Request) {
 	var query string
 	var args []interface{}
 
-	// Build query with optional search
 	if search != "" {
 		query = `
 			SELECT a.id, a.email, a.premdays, a.coins, a.coins_transferable,
@@ -188,7 +176,6 @@ func GetAdminAccountsHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		// Determine account type
 		if premdays > 0 {
 			acc.AccountType = "Premium Account"
 		} else {
@@ -206,7 +193,6 @@ func GetAdminAccountsHandler(w http.ResponseWriter, r *http.Request) {
 		accounts = append(accounts, acc)
 	}
 
-	// Get total count for pagination
 	var totalCount int
 	countQuery := "SELECT COUNT(*) FROM accounts"
 	if search != "" {

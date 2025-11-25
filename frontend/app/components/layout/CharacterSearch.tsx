@@ -8,7 +8,6 @@ export default function CharacterSearch() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (characterName.trim()) {
-      // Redirect to character page or perform search
       window.location.href = `/characters/${characterName}`
     }
   }

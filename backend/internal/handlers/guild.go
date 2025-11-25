@@ -79,7 +79,6 @@ func GetGuildsHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := utils.NewDBContext()
 	defer cancel()
 
-	// Get pagination parameters
 	pageStr := r.URL.Query().Get("page")
 	limitStr := r.URL.Query().Get("limit")
 	search := r.URL.Query().Get("search")
@@ -105,8 +104,6 @@ func GetGuildsHandler(w http.ResponseWriter, r *http.Request) {
 	var query string
 	var args []interface{}
 
-	// Build query with optional search
-	// Optimized: Use LEFT JOIN with COUNT instead of subqueries for better performance
 	if search != "" {
 		query = `
 			SELECT g.id, g.name, g.level, g.points,
@@ -173,7 +170,6 @@ func GetGuildsHandler(w http.ResponseWriter, r *http.Request) {
 		guilds = append(guilds, guild)
 	}
 
-	// Get total count for pagination
 	var totalCount int
 	countQuery := "SELECT COUNT(*) FROM guilds"
 	if search != "" {
@@ -206,7 +202,6 @@ func GetGuildDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Decode URL-encoded guild name (mux already decodes, but handle edge cases)
 	decodedName, err := url.PathUnescape(guildName)
 	if err == nil && decodedName != guildName {
 		guildName = decodedName
@@ -218,12 +213,11 @@ func GetGuildDetailsHandler(w http.ResponseWriter, r *http.Request) {
 	var guild GuildDetails
 	guild.Ranks = []GuildRank{} // Initialize empty ranks array
 	guild.Members = []GuildMember{} // Initialize empty members array
-	guild.PendingInvites = []PendingInviteItem{} // Initialize empty pending invites array
+	guild.PendingInvites = []PendingInviteItem{}
 	var ownerName sql.NullString
 	var creationData int64
 	var motd sql.NullString
 
-	// Get basic guild info - use case-insensitive comparison
 	err = database.DB.QueryRowContext(ctx,
 		`SELECT g.id, g.name, g.level, g.ownerid, g.creationdata, 
 		        g.motd, g.balance, g.points,
@@ -267,7 +261,6 @@ func GetGuildDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		guild.MOTD = motd.String
 	}
 
-	// Get guild ranks
 	rankRows, err := database.DB.QueryContext(ctx,
 		`SELECT id, name, level 
 		 FROM guild_ranks 
@@ -285,7 +278,6 @@ func GetGuildDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Get guild members from guild_membership
 	memberRows, err := database.DB.QueryContext(ctx,
 		`SELECT p.id, p.name, p.level, p.vocation, 
 		        COALESCE(gr.name, 'Member') as rank_name, 
@@ -301,9 +293,7 @@ func GetGuildDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		guild.ID,
 	)
 	
-	// Get all members from guild_membership
 	if err != nil {
-		// Query failed - members array will remain empty
 	} else {
 		defer memberRows.Close()
 		for memberRows.Next() {
@@ -325,11 +315,9 @@ func GetGuildDetailsHandler(w http.ResponseWriter, r *http.Request) {
 				&status,
 			)
 			if scanErr != nil {
-				// Skip this row if scan fails
 				continue
 			}
 			
-			// Convert vocation ID to name
 			member.Vocation = config.GetVocationName(vocationID)
 			if rankName.Valid {
 				member.Rank = rankName.String
@@ -349,8 +337,6 @@ func GetGuildDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Always ensure owner is in members list (even if not in guild_membership)
-	// Check if owner is already in the list
 	ownerExists := false
 	for _, m := range guild.Members {
 		if m.PlayerID == guild.OwnerID {
@@ -359,7 +345,6 @@ func GetGuildDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	
-	// If owner not in list, fetch and add them
 	if !ownerExists {
 		var ownerLevel int
 		var ownerVocationID int
@@ -387,7 +372,6 @@ func GetGuildDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Optimized sort using sort.Slice (O(n log n) instead of O(n²))
 	sort.Slice(guild.Members, func(i, j int) bool {
 		if guild.Members[i].RankLevel != guild.Members[j].RankLevel {
 			return guild.Members[i].RankLevel > guild.Members[j].RankLevel
@@ -400,7 +384,6 @@ func GetGuildDetailsHandler(w http.ResponseWriter, r *http.Request) {
 
 	guild.MemberCount = len(guild.Members)
 
-	// Get pending invites for this guild
 	inviteRows, err := database.DB.QueryContext(ctx,
 		`SELECT p.id, p.name, p.level, p.vocation, gi.date
 		 FROM guild_invites gi
@@ -429,10 +412,8 @@ func GetGuildDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Check if user is authenticated and get invite/membership info
 	userID, ok := r.Context().Value(middleware.UserIDKey).(int)
 	if ok {
-		// Check if user has pending invite
 		var hasInvite bool
 		err = database.DB.QueryRowContext(ctx,
 			`SELECT EXISTS(
@@ -446,11 +427,9 @@ func GetGuildDetailsHandler(w http.ResponseWriter, r *http.Request) {
 			guild.HasPendingInvite = hasInvite
 		}
 
-		// Check if user is the owner and get membership info in a single optimized query
 		var isOwner bool
 		var userRankLevel int
 		
-		// First check if user is owner (optimized: single query)
 		err = database.DB.QueryRowContext(ctx,
 			`SELECT EXISTS(
 				SELECT 1 FROM players p 
@@ -463,7 +442,6 @@ func GetGuildDetailsHandler(w http.ResponseWriter, r *http.Request) {
 			guild.IsMember = true
 			guild.CanInvite = true
 		} else {
-			// Not owner, check membership and rank in a single optimized query
 			var rankLevel sql.NullInt64
 			err = database.DB.QueryRowContext(ctx,
 				`SELECT COALESCE(gr.level, 0) as rank_level
@@ -476,15 +454,12 @@ func GetGuildDetailsHandler(w http.ResponseWriter, r *http.Request) {
 			).Scan(&rankLevel)
 			
 			if err == nil {
-				// User is a member
 				if rankLevel.Valid {
 					userRankLevel = int(rankLevel.Int64)
 				}
 				guild.IsMember = true
-				// Rank level >= 2 (Vice Leader or higher) can invite
 				guild.CanInvite = (userRankLevel >= 2)
 			} else if err == sql.ErrNoRows {
-				// User is not a member
 				guild.IsMember = false
 				guild.CanInvite = false
 			}
@@ -515,7 +490,6 @@ type CreateGuildResponse struct {
 // - Character must not be in another guild
 // - Guild name must be unique and valid
 func CreateGuildHandler(w http.ResponseWriter, r *http.Request) {
-	// Get user ID from context (set by auth middleware)
 	userID, ok := r.Context().Value(middleware.UserIDKey).(int)
 	if !ok {
 		utils.WriteError(w, http.StatusUnauthorized, "Authentication required")
@@ -534,7 +508,6 @@ func CreateGuildHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate and sanitize guild name
 	req.Name = utils.SanitizeString(req.Name, 255)
 	if req.Name == "" {
 		utils.WriteError(w, http.StatusBadRequest, "Guild name is required")
@@ -546,21 +519,18 @@ func CreateGuildHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate guild name contains only letters, numbers, and spaces
 	guildNameRegex := regexp.MustCompile(`^[a-zA-Z0-9\s]+$`)
 	if !guildNameRegex.MatchString(req.Name) {
 		utils.WriteError(w, http.StatusBadRequest, "Guild name must contain only letters, numbers, and spaces")
 		return
 	}
 
-	// Validate character name
 	req.CharacterName = utils.SanitizeString(req.CharacterName, 255)
 	if req.CharacterName == "" {
 		utils.WriteError(w, http.StatusBadRequest, "Character name is required")
 		return
 	}
 
-	// Sanitize MOTD (optional)
 	if req.MOTD != "" {
 		req.MOTD = utils.SanitizeString(req.MOTD, 255)
 	}
@@ -568,7 +538,6 @@ func CreateGuildHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := utils.NewDBContext()
 	defer cancel()
 
-	// Start transaction for atomicity
 	tx, err := database.DB.BeginTx(ctx, nil)
 	if err != nil {
 		if utils.HandleDBError(w, err) {
@@ -579,7 +548,6 @@ func CreateGuildHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	// Verify character exists and belongs to user
 	var characterID int
 	var characterLevel int
 	err = tx.QueryRowContext(ctx,
@@ -599,7 +567,6 @@ func CreateGuildHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if character is already in a guild
 	var existingGuildID sql.NullInt64
 	err = tx.QueryRowContext(ctx,
 		`SELECT guild_id FROM guild_membership WHERE player_id = ?`,
@@ -619,7 +586,6 @@ func CreateGuildHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if character is already a guild owner
 	var existingOwnerGuildID sql.NullInt64
 	err = tx.QueryRowContext(ctx,
 		`SELECT id FROM guilds WHERE ownerid = ?`,
@@ -639,7 +605,6 @@ func CreateGuildHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if guild name already exists (case-insensitive)
 	var guildExists bool
 	err = tx.QueryRowContext(ctx,
 		`SELECT EXISTS(SELECT 1 FROM guilds WHERE LOWER(name) = LOWER(?))`,
@@ -659,7 +624,6 @@ func CreateGuildHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create guild
 	creationTime := time.Now().Unix()
 	result, err := tx.ExecContext(ctx,
 		`INSERT INTO guilds (name, ownerid, creationdata, motd, level, balance, points) 
@@ -681,7 +645,6 @@ func CreateGuildHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create default ranks (Leader, Vice Leader, Member)
 	ranks := []struct {
 		name  string
 		level int
@@ -708,7 +671,6 @@ func CreateGuildHandler(w http.ResponseWriter, r *http.Request) {
 		rankIDs[rank.name] = rankID
 	}
 
-	// Add owner as member with Leader rank
 	leaderRankID := rankIDs["Leader"]
 	_, err = tx.ExecContext(ctx,
 		`INSERT INTO guild_membership (player_id, guild_id, rank_id, nick) VALUES (?, ?, ?, '')`,
@@ -723,7 +685,6 @@ func CreateGuildHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Commit transaction
 	if err = tx.Commit(); err != nil {
 		if utils.HandleDBError(w, err) {
 			return
@@ -756,14 +717,12 @@ type InvitePlayerResponse struct {
 // - Player must exist and not be in another guild
 // - Player must not already have a pending invite
 func InvitePlayerHandler(w http.ResponseWriter, r *http.Request) {
-	// Get user ID from context
 	userID, ok := r.Context().Value(middleware.UserIDKey).(int)
 	if !ok {
 		utils.WriteError(w, http.StatusUnauthorized, "Authentication required")
 		return
 	}
 
-	// Get guild name from URL
 	vars := mux.Vars(r)
 	guildName, err := url.PathUnescape(vars["name"])
 	if err != nil {
@@ -783,7 +742,6 @@ func InvitePlayerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate and sanitize player name
 	req.PlayerName = utils.SanitizeString(req.PlayerName, 255)
 	if req.PlayerName == "" {
 		utils.WriteError(w, http.StatusBadRequest, "Player name is required")
@@ -793,7 +751,6 @@ func InvitePlayerHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := utils.NewDBContext()
 	defer cancel()
 
-	// Start transaction
 	tx, err := database.DB.BeginTx(ctx, nil)
 	if err != nil {
 		if utils.HandleDBError(w, err) {
@@ -804,7 +761,6 @@ func InvitePlayerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	// Get guild info
 	var guildID int
 	var ownerID int
 	err = tx.QueryRowContext(ctx,
@@ -824,8 +780,6 @@ func InvitePlayerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get user's character ID and rank level (optimized: check owner first, then membership)
-	// First check if user is owner (most common case for invites)
 	var userCharacterID int
 	var userRankLevel int
 	var isOwner bool
@@ -835,11 +789,9 @@ func InvitePlayerHandler(w http.ResponseWriter, r *http.Request) {
 	).Scan(&userCharacterID)
 	
 	if err == nil {
-		// User is owner
 		isOwner = true
 		userRankLevel = 999 // Owner has highest rank
 	} else if err == sql.ErrNoRows {
-		// Not owner, check if user is a member
 		err = tx.QueryRowContext(ctx,
 			`SELECT gm.player_id, COALESCE(gr.level, 0) as rank_level
 			 FROM guild_membership gm
@@ -863,13 +815,11 @@ func InvitePlayerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if user has permission (owner or rank level >= 2 = Vice Leader)
 	if !isOwner && userRankLevel < 2 {
 		utils.WriteError(w, http.StatusForbidden, "Only guild owner or vice leaders can invite players")
 		return
 	}
 
-	// Get player to invite
 	var invitedPlayerID int
 	err = tx.QueryRowContext(ctx,
 		`SELECT id FROM players WHERE name = ?`,
@@ -888,7 +838,6 @@ func InvitePlayerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if player is already in a guild
 	var existingGuildID sql.NullInt64
 	err = tx.QueryRowContext(ctx,
 		`SELECT guild_id FROM guild_membership WHERE player_id = ?`,
@@ -908,7 +857,6 @@ func InvitePlayerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if player is already a guild owner
 	var existingOwnerGuildID sql.NullInt64
 	err = tx.QueryRowContext(ctx,
 		`SELECT id FROM guilds WHERE ownerid = ?`,
@@ -928,7 +876,6 @@ func InvitePlayerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if invite already exists
 	var inviteExists bool
 	err = tx.QueryRowContext(ctx,
 		`SELECT EXISTS(SELECT 1 FROM guild_invites WHERE player_id = ? AND guild_id = ?)`,
@@ -948,7 +895,6 @@ func InvitePlayerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create invite
 	inviteDate := time.Now().Unix()
 	_, err = tx.ExecContext(ctx,
 		`INSERT INTO guild_invites (player_id, guild_id, date) VALUES (?, ?, ?)`,
@@ -963,7 +909,6 @@ func InvitePlayerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Commit transaction
 	if err = tx.Commit(); err != nil {
 		if utils.HandleDBError(w, err) {
 			return
@@ -993,7 +938,6 @@ type AcceptInviteResponse struct {
 // - User must have a pending invite for the guild
 // - User must not be in another guild
 func AcceptInviteHandler(w http.ResponseWriter, r *http.Request) {
-	// Get user ID from context
 	userID, ok := r.Context().Value(middleware.UserIDKey).(int)
 	if !ok {
 		utils.WriteError(w, http.StatusUnauthorized, "Authentication required")
@@ -1012,7 +956,6 @@ func AcceptInviteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate and sanitize guild name
 	req.GuildName = utils.SanitizeString(req.GuildName, 255)
 	if req.GuildName == "" {
 		utils.WriteError(w, http.StatusBadRequest, "Guild name is required")
@@ -1022,7 +965,6 @@ func AcceptInviteHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := utils.NewDBContext()
 	defer cancel()
 
-	// Start transaction
 	tx, err := database.DB.BeginTx(ctx, nil)
 	if err != nil {
 		if utils.HandleDBError(w, err) {
@@ -1033,7 +975,6 @@ func AcceptInviteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	// Get guild info
 	var guildID int
 	err = tx.QueryRowContext(ctx,
 		`SELECT id FROM guilds WHERE LOWER(name) = LOWER(?)`,
@@ -1052,7 +993,6 @@ func AcceptInviteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get user's character (must have exactly one character to accept invite)
 	var characterID int
 	err = tx.QueryRowContext(ctx,
 		`SELECT id FROM players WHERE account_id = ? LIMIT 1`,
@@ -1071,7 +1011,6 @@ func AcceptInviteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if character is already in a guild
 	var existingGuildID sql.NullInt64
 	err = tx.QueryRowContext(ctx,
 		`SELECT guild_id FROM guild_membership WHERE player_id = ?`,
@@ -1091,7 +1030,6 @@ func AcceptInviteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if character is already a guild owner
 	var existingOwnerGuildID sql.NullInt64
 	err = tx.QueryRowContext(ctx,
 		`SELECT id FROM guilds WHERE ownerid = ?`,
@@ -1111,7 +1049,6 @@ func AcceptInviteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if invite exists
 	var inviteExists bool
 	err = tx.QueryRowContext(ctx,
 		`SELECT EXISTS(SELECT 1 FROM guild_invites WHERE player_id = ? AND guild_id = ?)`,
@@ -1131,7 +1068,6 @@ func AcceptInviteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get the lowest rank (Member) for the guild
 	var rankID int
 	err = tx.QueryRowContext(ctx,
 		`SELECT id FROM guild_ranks WHERE guild_id = ? ORDER BY level ASC LIMIT 1`,
@@ -1150,7 +1086,6 @@ func AcceptInviteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Add player to guild
 	_, err = tx.ExecContext(ctx,
 		`INSERT INTO guild_membership (player_id, guild_id, rank_id, nick) VALUES (?, ?, ?, '')`,
 		characterID, guildID, rankID,
@@ -1164,7 +1099,6 @@ func AcceptInviteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Remove invite
 	_, err = tx.ExecContext(ctx,
 		`DELETE FROM guild_invites WHERE player_id = ? AND guild_id = ?`,
 		characterID, guildID,
@@ -1178,7 +1112,6 @@ func AcceptInviteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Commit transaction
 	if err = tx.Commit(); err != nil {
 		if utils.HandleDBError(w, err) {
 			return
@@ -1194,7 +1127,6 @@ func AcceptInviteHandler(w http.ResponseWriter, r *http.Request) {
 
 // GetPendingInvitesHandler returns all pending invites for the authenticated user
 func GetPendingInvitesHandler(w http.ResponseWriter, r *http.Request) {
-	// Get user ID from context
 	userID, ok := r.Context().Value(middleware.UserIDKey).(int)
 	if !ok {
 		utils.WriteError(w, http.StatusUnauthorized, "Authentication required")
@@ -1204,7 +1136,6 @@ func GetPendingInvitesHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := utils.NewDBContext()
 	defer cancel()
 
-	// Get all pending invites for user's characters
 	rows, err := database.DB.QueryContext(ctx,
 		`SELECT gi.guild_id, g.name as guild_name, g.level, g.points,
 		        p.name as player_name, gi.date
@@ -1267,7 +1198,6 @@ type LeaveGuildResponse struct {
 // - User must be a member of the guild
 // - User cannot be the owner (owner cannot leave their own guild)
 func LeaveGuildHandler(w http.ResponseWriter, r *http.Request) {
-	// Get user ID from context
 	userID, ok := r.Context().Value(middleware.UserIDKey).(int)
 	if !ok {
 		utils.WriteError(w, http.StatusUnauthorized, "Authentication required")
@@ -1286,7 +1216,6 @@ func LeaveGuildHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate and sanitize guild name
 	req.GuildName = utils.SanitizeString(req.GuildName, 255)
 	if req.GuildName == "" {
 		utils.WriteError(w, http.StatusBadRequest, "Guild name is required")
@@ -1296,7 +1225,6 @@ func LeaveGuildHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := utils.NewDBContext()
 	defer cancel()
 
-	// Start transaction
 	tx, err := database.DB.BeginTx(ctx, nil)
 	if err != nil {
 		if utils.HandleDBError(w, err) {
@@ -1307,7 +1235,6 @@ func LeaveGuildHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	// Get guild info
 	var guildID int
 	var ownerID int
 	err = tx.QueryRowContext(ctx,
@@ -1327,7 +1254,6 @@ func LeaveGuildHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get user's character ID
 	var characterID int
 	err = tx.QueryRowContext(ctx,
 		`SELECT id FROM players WHERE account_id = ? LIMIT 1`,
@@ -1346,13 +1272,11 @@ func LeaveGuildHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if user is the owner
 	if characterID == ownerID {
 		utils.WriteError(w, http.StatusForbidden, "Guild owner cannot leave the guild. Transfer ownership or delete the guild instead.")
 		return
 	}
 
-	// Check if user is a member
 	var isMember bool
 	err = tx.QueryRowContext(ctx,
 		`SELECT EXISTS(
@@ -1375,7 +1299,6 @@ func LeaveGuildHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Remove member from guild
 	_, err = tx.ExecContext(ctx,
 		`DELETE FROM guild_membership WHERE player_id = ? AND guild_id = ?`,
 		characterID, guildID,
@@ -1389,7 +1312,6 @@ func LeaveGuildHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Commit transaction
 	if err = tx.Commit(); err != nil {
 		if utils.HandleDBError(w, err) {
 			return
@@ -1421,7 +1343,6 @@ type KickPlayerResponse struct {
 // - Player to be kicked must be a member of the guild
 // - Player to be kicked cannot be the owner
 func KickPlayerHandler(w http.ResponseWriter, r *http.Request) {
-	// Get user ID from context
 	userID, ok := r.Context().Value(middleware.UserIDKey).(int)
 	if !ok {
 		utils.WriteError(w, http.StatusUnauthorized, "Authentication required")
@@ -1440,7 +1361,6 @@ func KickPlayerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate and sanitize inputs
 	req.GuildName = utils.SanitizeString(req.GuildName, 255)
 	req.PlayerName = utils.SanitizeString(req.PlayerName, 255)
 	if req.GuildName == "" || req.PlayerName == "" {
@@ -1451,7 +1371,6 @@ func KickPlayerHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := utils.NewDBContext()
 	defer cancel()
 
-	// Start transaction
 	tx, err := database.DB.BeginTx(ctx, nil)
 	if err != nil {
 		if utils.HandleDBError(w, err) {
@@ -1462,7 +1381,6 @@ func KickPlayerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	// Get guild info
 	var guildID int
 	var ownerID int
 	err = tx.QueryRowContext(ctx,
@@ -1482,7 +1400,6 @@ func KickPlayerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get user's character ID
 	var userCharacterID int
 	err = tx.QueryRowContext(ctx,
 		`SELECT id FROM players WHERE account_id = ? LIMIT 1`,
@@ -1501,10 +1418,8 @@ func KickPlayerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if user is the owner
 	isOwner := (userCharacterID == ownerID)
 
-	// If not owner, check if user is a member with sufficient rank (level >= 2)
 	if !isOwner {
 		var rankLevel sql.NullInt64
 		err = tx.QueryRowContext(ctx,
@@ -1528,7 +1443,6 @@ func KickPlayerHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Check if user has sufficient rank (level >= 2 for vice-leader)
 		userRankLevel := 0
 		if rankLevel.Valid {
 			userRankLevel = int(rankLevel.Int64)
@@ -1539,7 +1453,6 @@ func KickPlayerHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Get player to be kicked
 	var playerToKickID int
 	err = tx.QueryRowContext(ctx,
 		`SELECT id FROM players WHERE LOWER(name) = LOWER(?)`,
@@ -1558,13 +1471,11 @@ func KickPlayerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Cannot kick the owner
 	if playerToKickID == ownerID {
 		utils.WriteError(w, http.StatusForbidden, "Cannot kick the guild owner")
 		return
 	}
 
-	// Check if player is a member
 	var isMember bool
 	err = tx.QueryRowContext(ctx,
 		`SELECT EXISTS(
@@ -1587,7 +1498,6 @@ func KickPlayerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Remove player from guild
 	_, err = tx.ExecContext(ctx,
 		`DELETE FROM guild_membership WHERE player_id = ? AND guild_id = ?`,
 		playerToKickID, guildID,
@@ -1601,7 +1511,6 @@ func KickPlayerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Commit transaction
 	if err = tx.Commit(); err != nil {
 		if utils.HandleDBError(w, err) {
 			return

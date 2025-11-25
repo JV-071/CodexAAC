@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -28,7 +29,6 @@ var (
 	stagesConfig      *StagesConfig
 	stagesConfigMutex sync.RWMutex
 	stagesFilePath    string
-	// Regex to match stage entries: { minlevel = X, maxlevel = Y, multiplier = Z }
 	stageEntryRegex = regexp.MustCompile(`(\w+)\s*=\s*(\d+)`)
 )
 
@@ -38,16 +38,13 @@ func InitStagesConfig(stagesPath string) error {
 	return ReloadStagesConfig()
 }
 
-// ReloadStagesConfig reloads stages configuration from SERVER_PATH/data/stages.lua
 func ReloadStagesConfig() error {
-	// Determine stages.lua path from SERVER_PATH
 	if stagesFilePath == "" {
 		serverPath := os.Getenv("SERVER_PATH")
 		if serverPath == "" {
 			return fmt.Errorf("SERVER_PATH not configured")
 		}
 
-		// Build full path to stages.lua inside /data
 		stagesFilePath = filepath.Join(serverPath, "data", "stages.lua")
 	}
 
@@ -71,12 +68,10 @@ func ReloadStagesConfig() error {
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 
-		// Skip empty lines and comments
 		if line == "" || strings.HasPrefix(line, "--") {
 			continue
 		}
 
-		// Detect table start
 		if strings.Contains(line, "experienceStages") {
 			currentTable = "experience"
 			continue
@@ -88,14 +83,12 @@ func ReloadStagesConfig() error {
 			continue
 		}
 
-		// Detect stage block start
 		if strings.HasPrefix(line, "{") {
 			inStage = true
 			currentStage = Stage{}
 			continue
 		}
 
-		// Detect stage block end
 		if strings.HasPrefix(line, "}") {
 			if inStage {
 				switch currentTable {
@@ -111,7 +104,6 @@ func ReloadStagesConfig() error {
 			continue
 		}
 
-		// Parse stage parameters
 		if inStage {
 			matches := stageEntryRegex.FindStringSubmatch(line)
 			if len(matches) == 3 {
@@ -137,7 +129,6 @@ func ReloadStagesConfig() error {
 		return fmt.Errorf("error reading stages.lua: %w", err)
 	}
 
-	// Safely update global stages config
 	stagesConfigMutex.Lock()
 	stagesConfig = config
 	stagesConfigMutex.Unlock()
@@ -158,7 +149,6 @@ func GetStagesConfig() *StagesConfig {
 		}
 	}
 
-	// Return a copy
 	return &StagesConfig{
 		ExperienceStages: append([]Stage{}, stagesConfig.ExperienceStages...),
 		SkillsStages:     append([]Stage{}, stagesConfig.SkillsStages...),

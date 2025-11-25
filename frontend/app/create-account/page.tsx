@@ -32,11 +32,9 @@ export default function CreateAccountPage() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }))
-    // Clear specific error when user starts typing
     if (errors[name as keyof typeof errors]) {
       setErrors(prev => ({ ...prev, [name]: '' }))
     }
-    // Clear general error
     if (errors.general) {
       setErrors(prev => ({ ...prev, general: '' }))
     }

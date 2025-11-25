@@ -70,7 +70,6 @@ export default function MaintenancePage() {
         }
     }, [status.enabled, message, router])
 
-    // Memoized handlers to avoid re-renders
     const handleMessageChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setMessage(e.target.value)
     }, [])

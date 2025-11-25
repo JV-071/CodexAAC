@@ -26,14 +26,12 @@ export default function CreateGuildPage() {
     const [success, setSuccess] = useState(false)
     const [loading, setLoading] = useState(false)
 
-    // Fetch user's characters
     const fetchCharacters = useCallback(async () => {
         try {
             setLoadingCharacters(true)
             const response = await api.get<ApiResponse<Character[]>>('/characters')
             if (response && response.data) {
                 setCharacters(response.data)
-                // Auto-select first character if available (using functional update to avoid dependency)
                 setFormData(prev => {
                     if (response.data.length > 0 && !prev.characterName) {
                         return { ...prev, characterName: response.data[0].name }
@@ -60,7 +58,6 @@ export default function CreateGuildPage() {
             ...prev,
             [name]: value
         }))
-        // Clear error when user starts typing
         if (error) {
             setError('')
         }
@@ -110,7 +107,6 @@ export default function CreateGuildPage() {
 
             if (response && response.data) {
                 setSuccess(true)
-                // Redirect to guild page after 2 seconds
                 setTimeout(() => {
                     router.push(`/guilds/${encodeURIComponent(response.data.name)}`)
                 }, 2000)
@@ -124,7 +120,6 @@ export default function CreateGuildPage() {
         }
     }, [formData, validateForm, router])
 
-    // All characters are available (backend will validate if they can create guild)
     const availableCharacters = useMemo(() => {
         return characters
     }, [characters])

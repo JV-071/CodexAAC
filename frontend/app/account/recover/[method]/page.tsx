@@ -65,8 +65,6 @@ export default function RecoverAccountFormPage() {
     setLoading(true)
 
     try {
-      // Here you will make the API call     
-      // Simulation of sending
       await new Promise(resolve => setTimeout(resolve, 1500))
       
       setSuccess(true)
@@ -108,7 +106,6 @@ export default function RecoverAccountFormPage() {
     }
   }
 
-  // Redirect if invalid method
   if (!['character', 'username', 'neither'].includes(method)) {
     router.push('/account/recover')
     return null

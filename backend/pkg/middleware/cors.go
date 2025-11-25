@@ -13,7 +13,6 @@ var (
 	corsCacheOnce       sync.Once
 )
 
-// initCorsCache initializes CORS configuration cache
 func initCorsCache() {
 	allowedOriginsStr := os.Getenv("CORS_ALLOWED_ORIGINS")
 	envCache = os.Getenv("ENV")
@@ -27,11 +26,9 @@ func initCorsCache() {
 	}
 }
 
-// isOriginAllowed checks if origin is in allowed list
 func isOriginAllowed(origin string) bool {
 	corsCacheOnce.Do(initCorsCache)
 	
-	// In development, allow localhost if not configured
 	if len(allowedOriginsCache) == 0 && (envCache == "development" || envCache == "") {
 		return origin == "http://localhost:3000" || origin == "http://127.0.0.1:3000"
 	}
@@ -48,7 +45,6 @@ func CorsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
 		
-		// Set CORS headers only if origin is allowed
 		if isOriginAllowed(origin) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 		}

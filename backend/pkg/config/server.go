@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -49,27 +50,21 @@ var (
 	serverConfigOnce  sync.Once
 	serverConfigMutex sync.RWMutex
 	configFilePath    string
-	// Compile regex once for better performance
 	configLineRegex = regexp.MustCompile(`^(\w+)\s*=\s*(.+)$`)
 )
 
-// configSetter is a function that sets a value in ServerConfig
 type configSetter func(*ServerConfig, string)
 
-// Helper function to parse and set integer values
 func parseIntValue(value string) (int, bool) {
 	intVal, err := strconv.Atoi(value)
 	return intVal, err == nil
 }
 
-// Helper function to parse boolean values
 func parseBoolValue(value string) bool {
 	value = strings.ToLower(strings.TrimSpace(value))
 	return value == "true" || value == "1"
 }
 
-// configSetters maps config keys (lowercase) to their setter functions
-// This map-based approach makes it easy to add new fields without modifying parsing logic
 var configSetters = map[string]configSetter{
 	"servername": func(c *ServerConfig, v string) {
 		c.ServerName = v
@@ -158,22 +153,15 @@ var configSetters = map[string]configSetter{
 		c.FreePremium = parseBoolValue(v)
 	},
 	"timetodecreasefrags": func(c *ServerConfig, v string) {
-		// Parse expression like "24 * 60 * 60 * 1000" (milliseconds) and convert to hours
-		// Format: hours * 60 * 60 * 1000 = milliseconds
-		// We extract the first number which represents hours
 		if strings.Contains(v, "*") {
 			parts := strings.Split(v, "*")
 			if len(parts) > 0 {
-				// First number is the hours
 				if hours, ok := parseIntValue(strings.TrimSpace(parts[0])); ok {
 					c.FragDuration = hours
 				}
 			}
-		} else {
-			// If it's a simple number, assume it's already in hours
-			if hours, ok := parseIntValue(v); ok {
-				c.FragDuration = hours
-			}
+		} else if hours, ok := parseIntValue(v); ok {
+			c.FragDuration = hours
 		}
 	},
 	"redskullduration": func(c *ServerConfig, v string) {
@@ -210,16 +198,13 @@ func InitServerConfig(configPath string) error {
 	return ReloadServerConfig()
 }
 
-// ReloadServerConfig reloads server configuration from SERVER_PATH/config.lua
 func ReloadServerConfig() error {
-	// Try to determine config.lua path from SERVER_PATH
 	if configFilePath == "" {
 		serverPath := os.Getenv("SERVER_PATH")
 		if serverPath == "" {
 			return fmt.Errorf("SERVER_PATH not configured")
 		}
 
-		// Build full path to config.lua
 		configFilePath = filepath.Join(serverPath, "config.lua")
 	}
 
@@ -238,15 +223,10 @@ func ReloadServerConfig() error {
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 
-		// Skip empty lines and Lua comments
 		if line == "" || strings.HasPrefix(line, "--") {
 			continue
 		}
 
-		// Parse key-value pairs
-		// Expected formats:
-		//   key = value
-		//   key = "value"
 		parseConfigLine(line, config)
 	}
 
@@ -254,7 +234,6 @@ func ReloadServerConfig() error {
 		return fmt.Errorf("error reading config.lua: %w", err)
 	}
 
-	// Update global server config safely
 	serverConfigMutex.Lock()
 	serverConfig = config
 	serverConfigMutex.Unlock()
@@ -262,21 +241,16 @@ func ReloadServerConfig() error {
 	return nil
 }
 
-// parseConfigLine parses a single line from config.lua
 func parseConfigLine(line string, config *ServerConfig) {
-	// Remove comments from line
 	if idx := strings.Index(line, "--"); idx != -1 {
 		line = line[:idx]
 		line = strings.TrimSpace(line)
 	}
 
-	// Skip if line doesn't contain '='
 	if !strings.Contains(line, "=") {
 		return
 	}
 
-	// Match: key = value or key = "value" or key = { ... }
-	// Support both quoted and unquoted values
 	matches := configLineRegex.FindStringSubmatch(line)
 	if len(matches) != 3 {
 		return
@@ -285,13 +259,10 @@ func parseConfigLine(line string, config *ServerConfig) {
 	key := strings.TrimSpace(matches[1])
 	value := strings.TrimSpace(matches[2])
 
-	// Skip if value is a table (starts with {)
 	if strings.HasPrefix(value, "{") {
 		return
 	}
 
-	// Allow expressions for specific fields (like timeToDecreaseFrags)
-	// For other fields, skip if value contains expressions
 	keyLower := strings.ToLower(key)
 	allowExpressions := keyLower == "timetodecreasefrags"
 
@@ -299,26 +270,21 @@ func parseConfigLine(line string, config *ServerConfig) {
 		return
 	}
 
-	// Remove quotes if present (both single and double)
 	value = strings.Trim(value, `"'`)
 
-	// Look up setter in map and apply if found
 	if setter, exists := configSetters[keyLower]; exists {
 		setter(config, value)
 	}
 }
 
-// GetServerConfig returns the current server configuration
-// Returns a copy to prevent external modifications
 func GetServerConfig() *ServerConfig {
 	serverConfigMutex.RLock()
 	defer serverConfigMutex.RUnlock()
 
 	if serverConfig == nil {
-		return &ServerConfig{} // Return empty config if not loaded
+		return &ServerConfig{}
 	}
 
-	// Return a copy to prevent external modifications
 	return &ServerConfig{
 		ServerName:         serverConfig.ServerName,
 		WorldType:          serverConfig.WorldType,
@@ -352,8 +318,6 @@ func GetServerConfig() *ServerConfig {
 	}
 }
 
-// GetServerName returns the server name from config
-// Optimized to avoid full struct copy
 func GetServerName() string {
 	serverConfigMutex.RLock()
 	defer serverConfigMutex.RUnlock()

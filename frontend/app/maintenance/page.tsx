@@ -6,13 +6,11 @@ import { api } from '../services/api'
 import type { MaintenanceData } from '../types/maintenance'
 import type { ApiResponse } from '../types/account'
 
-// Constants
 const DEFAULT_MESSAGE = 'We are currently performing scheduled maintenance to improve your experience. Please check back soon.'
 
 export default function MaintenancePage() {
     const [message, setMessage] = useState<string>('')
 
-    // Memoized fetch function to avoid recreation
     const fetchMaintenanceMessage = useCallback(async () => {
         try {
             const response = await api.get<ApiResponse<MaintenanceData>>('/maintenance/status', {
@@ -22,7 +20,6 @@ export default function MaintenancePage() {
                 setMessage(response.data.message)
             }
         } catch (err) {
-            // Ignore errors, use default message
         }
     }, [])
 
@@ -30,7 +27,6 @@ export default function MaintenancePage() {
         fetchMaintenanceMessage()
     }, [fetchMaintenanceMessage])
 
-    // Memoize displayed message to avoid recalculation
     const displayMessage = useMemo(() => message || DEFAULT_MESSAGE, [message])
 
     return (

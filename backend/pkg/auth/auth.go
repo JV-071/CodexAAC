@@ -14,7 +14,6 @@ var (
 	jwtKeyOnce sync.Once
 )
 
-// getJWTKey returns JWT secret key, loading it once
 func getJWTKey() []byte {
 	jwtKeyOnce.Do(func() {
 		key := os.Getenv("JWT_SECRET")

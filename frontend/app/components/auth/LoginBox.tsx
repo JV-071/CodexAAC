@@ -23,15 +23,11 @@ export default function LoginBox() {
   const [loading, setLoading] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
 
-  // Check if user is already authenticated
   useEffect(() => {
     const checkAuth = () => {
-      // First, check locally if user has a valid token
       if (authService.isAuthenticated()) {
-        // Token exists and is valid locally - show dashboard button instead of form
         setCheckingAuth(false)
       } else {
-        // No valid token locally - show login form
         setCheckingAuth(false)
       }
     }
@@ -51,23 +47,16 @@ export default function LoginBox() {
         token: requires2FA ? twoFactorToken : undefined,
       }, { public: true })
 
-      // Check if 2FA is required
       if (data.requires2FA) {
         setRequires2FA(true)
         setError('')
         return
       }
 
-      // Save token (localStorage in dev, cookie in production)
-      // In development, we need to save to localStorage for Authorization header
-      // In production, backend sets httpOnly cookie
       authService.saveToken(data.token || '')
-      
-      // Redirect to account page
       router.push('/account')
     } catch (err: any) {
       setError(err.message || 'Invalid email or password. Please try again.')
-      // Reset 2FA state on error (unless it's a 2FA-related error)
       if (err.message && !err.message.includes('2FA') && !err.message.includes('token')) {
         setRequires2FA(false)
         setTwoFactorToken('')
@@ -77,7 +66,6 @@ export default function LoginBox() {
     }
   }
 
-  // Show loading state while checking authentication
   if (checkingAuth) {
     return (
       <div className="bg-[#252525]/95 backdrop-blur-sm rounded-xl border-2 border-[#505050]/70 p-4 sm:p-6 shadow-2xl ring-2 ring-[#ffd700]/10">
@@ -87,7 +75,6 @@ export default function LoginBox() {
     )
   }
 
-  // If user is authenticated, show dashboard button instead of login form
   if (authService.isAuthenticated()) {
     return (
       <div className="bg-[#252525]/95 backdrop-blur-sm rounded-xl border-2 border-[#505050]/70 p-4 sm:p-6 shadow-2xl ring-2 ring-[#ffd700]/10">

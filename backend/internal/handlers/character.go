@@ -25,7 +25,6 @@ type CreateCharacterResponse struct {
 }
 
 func CreateCharacterHandler(w http.ResponseWriter, r *http.Request) {
-	// Get user ID from context (set by auth middleware)
 	userID, ok := r.Context().Value(middleware.UserIDKey).(int)
 	if !ok {
 		utils.WriteError(w, http.StatusUnauthorized, "Authentication required")
@@ -44,7 +43,6 @@ func CreateCharacterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate input
 	req.Name = utils.SanitizeString(req.Name, 255)
 	if req.Name == "" {
 		utils.WriteError(w, http.StatusBadRequest, "Character name is required")
@@ -56,42 +54,34 @@ func CreateCharacterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate name contains only letters and spaces
 	nameRegex := utils.GetNameRegex()
 	if !nameRegex.MatchString(req.Name) {
 		utils.WriteError(w, http.StatusBadRequest, "Character name must contain only letters and spaces")
 		return
 	}
 
-	// Validate vocation
 	vocationID, ok := config.VocationMapping[strings.ToLower(req.Vocation)]
 	if !ok {
 		utils.WriteError(w, http.StatusBadRequest, "Invalid vocation")
 		return
 	}
 
-	// Validate sex
 	sexID, ok := config.SexMapping[strings.ToLower(req.Sex)]
 	if !ok {
 		utils.WriteError(w, http.StatusBadRequest, "Invalid sex")
 		return
 	}
 
-	// Get character creation config
 	charConfig := config.GetCharacterCreationConfig()
 
-	// Get looktype based on sex
 	lookType, ok := config.LookTypeMapping[sexID]
 	if !ok {
-		// Fallback to female looktype if sex is invalid (should not happen after validation)
 		lookType = 136
 	}
 
-	// Create context with timeout
 	ctx, cancel := utils.NewDBContext()
 	defer cancel()
 
-	// Check if character name already exists
 	var exists bool
 	err := database.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM players WHERE name = ?)", req.Name).Scan(&exists)
 	if err != nil {
@@ -107,8 +97,6 @@ func CreateCharacterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Insert character into database
-	// Note: conditions field is required (BLOB), using empty blob
 	query := `
 		INSERT INTO players (
 			name, account_id, vocation, health, healthmax, mana, manamax,
@@ -151,12 +139,10 @@ func CreateCharacterHandler(w http.ResponseWriter, r *http.Request) {
 		if utils.HandleDBError(w, err) {
 			return
 		}
-		// Don't expose database error details to client (security)
 		utils.WriteError(w, http.StatusInternalServerError, "Error creating character")
 		return
 	}
 
-	// Get the inserted character ID
 	characterID, err := result.LastInsertId()
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, "Error getting character ID")
@@ -168,9 +154,7 @@ func CreateCharacterHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GetCharactersHandler returns all characters for the authenticated user
 func GetCharactersHandler(w http.ResponseWriter, r *http.Request) {
-	// Get user ID from context
 	userID, ok := r.Context().Value(middleware.UserIDKey).(int)
 	if !ok {
 		utils.WriteError(w, http.StatusUnauthorized, "Authentication required")
@@ -189,8 +173,6 @@ func GetCharactersHandler(w http.ResponseWriter, r *http.Request) {
 		Status   string `json:"status"`
 	}
 
-	// Query to get characters with online status
-	// LEFT JOIN with players_online to check if character is online
 	query := `
 		SELECT 
 			p.id, 
@@ -214,7 +196,6 @@ func GetCharactersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	// Pre-allocate slice with estimated capacity (most users have 1-5 characters)
 	characters := make([]Character, 0, 5)
 	for rows.Next() {
 		var char Character
@@ -226,11 +207,8 @@ func GetCharactersHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-			// Convert vocation ID to name using centralized config
 		char.Vocation = config.GetVocationName(vocationID)
-
 		char.Status = status
-		// Get world name from server config (fallback to default)
 		char.World = config.GetServerName()
 
 		characters = append(characters, char)
@@ -244,9 +222,7 @@ func GetCharactersHandler(w http.ResponseWriter, r *http.Request) {
 	utils.WriteSuccess(w, http.StatusOK, "Characters retrieved successfully", characters)
 }
 
-// GetCharacterDetailsHandler returns detailed information about a character by name
 func GetCharacterDetailsHandler(w http.ResponseWriter, r *http.Request) {
-	// Get character name from URL path
 	vars := mux.Vars(r)
 	characterName := vars["name"]
 
@@ -255,7 +231,6 @@ func GetCharacterDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Sanitize character name
 	characterName = utils.SanitizeString(characterName, 255)
 
 	ctx, cancel := utils.NewDBContext()
@@ -287,15 +262,12 @@ func GetCharacterDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		Deaths    []Death          `json:"deaths"`
 	}
 
-	// Query character details
 	var char CharacterDetails
 	var vocationID, sexID int
 	var lastLogin, created int64
 	var townName, guildName, guildRank sql.NullString
 	var premdays int
 
-	// Optimized query: Get all data in one query with JOINs (reduces from 3 queries to 1)
-	// Note: players table doesn't have a creation field, using account creation as fallback
 	query := `
 		SELECT 
 			p.id,
@@ -350,20 +322,15 @@ func GetCharacterDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert vocation ID to name
 	char.Vocation = config.GetVocationName(vocationID)
-
-	// Convert sex ID to string using config
 	char.Sex = config.GetSexName(sexID)
 
-	// Set residence from JOIN result
 	if townName.Valid {
 		char.Residence = townName.String
 	} else {
 		char.Residence = "Unknown"
 	}
 
-	// Set guild info if exists
 	if guildName.Valid {
 		char.GuildName = guildName.String
 	}
@@ -371,11 +338,9 @@ func GetCharacterDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		char.GuildRank = guildRank.String
 	}
 
-	// Convert timestamps
 	char.LastSeen = lastLogin
 	char.Created = created
 
-	// Set account status (premium/free) - consider freePremium config
 	serverConfig := config.GetServerConfig()
 	if premdays > 0 || serverConfig.FreePremium {
 		char.AccountStatus = "VIP Account"
@@ -383,7 +348,6 @@ func GetCharacterDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		char.AccountStatus = "Free Account"
 	}
 
-	// Query deaths
 	deathsQuery := `
 		SELECT time, level, killed_by, is_player
 		FROM player_deaths
@@ -394,8 +358,6 @@ func GetCharacterDetailsHandler(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := database.DB.QueryContext(ctx, deathsQuery, playerID)
 	if err != nil {
-		// Log error but don't fail the request
-		// Deaths are optional
 	}
 
 	deaths := make([]Death, 0)

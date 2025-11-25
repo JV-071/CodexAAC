@@ -14,7 +14,6 @@ type SocialLinksResponse struct {
 	Discord   string `json:"discord"`
 }
 
-// GetSocialLinksHandler returns social media links from environment variables
 func GetSocialLinksHandler(w http.ResponseWriter, r *http.Request) {
 	links := SocialLinksResponse{
 		Facebook:  getEnvWithDefault("SOCIAL_FACEBOOK_URL", ""),
@@ -26,7 +25,6 @@ func GetSocialLinksHandler(w http.ResponseWriter, r *http.Request) {
 	utils.WriteSuccess(w, http.StatusOK, "Social links retrieved successfully", links)
 }
 
-// Helper function to get environment variable with default value
 func getEnvWithDefault(key, defaultValue string) string {
 	value := os.Getenv(key)
 	if value == "" {

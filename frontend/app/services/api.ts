@@ -16,12 +16,9 @@ class ApiService {
             ...options.headers,
         };
 
-        // Check if we're in development (different ports = use Authorization header)
-        // In production (same domain), use httpOnly cookies
         const isDevelopment = typeof window !== 'undefined' && 
           (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
-        // In development, check token expiration and add Authorization header
         if (!isPublic && isDevelopment) {
           if (authService.isTokenExpired() && authService.isAuthenticated()) {
             authService.removeToken();
@@ -34,37 +31,29 @@ class ApiService {
           const token = authService.getToken();
           if (token) {
             headers['Authorization'] = `Bearer ${token}`;
-          }
+            }
         }
-        // In production, token is in httpOnly cookie (automatically sent)
 
-        // Remove custom options before passing to fetch
         const { public: _, ...fetchOptions } = options;
 
-        // Include credentials (cookies) in all requests
         const response = await fetch(url, {
             ...fetchOptions,
             headers,
-            credentials: 'include', // Important: sends httpOnly cookies
+            credentials: 'include',
         });
 
-        // Try to parse JSON, but handle non-JSON responses (like 401 errors)
         let data: any;
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
             data = await response.json();
         } else {
-            // If not JSON, read as text
             const text = await response.text();
             data = { message: text || 'Request error' };
         }
 
         if (!response.ok) {
-            // Check if server is under maintenance (503 Service Unavailable)
-            // Backend returns maintenance status in response data
             if (response.status === 503 && data.data?.maintenance === true) {
                 if (typeof window !== 'undefined') {
-                    // Don't redirect if already on maintenance page to avoid redirect loop
                     if (window.location.pathname !== '/maintenance') {
                         window.location.href = '/maintenance';
                     }
@@ -74,19 +63,14 @@ class ApiService {
                 throw error;
             }
             
-            // If unauthorized, redirect to login (skip for public endpoints)
-            // Public endpoints like /login may return 401 for invalid credentials/2FA tokens
-            // Cookie will be cleared by backend on logout
             if (response.status === 401 && !isPublic) {
                 if (typeof window !== 'undefined') {
-                    // Don't redirect if already on login page to avoid redirect loop
                     if (window.location.pathname !== '/login') {
                         window.location.href = '/login?unauthorized=true';
                     }
                 }
             }
             
-            // Create error with status code for better error handling
             const error = new Error(data.message || 'Request error') as any;
             error.status = response.status;
             throw error;

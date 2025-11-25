@@ -20,18 +20,14 @@ export const socialService = {
    * @returns {Promise<SocialLinks>} A promise that resolves with the social links.
    */
   async getLinks(): Promise<SocialLinks> {
-    // Return cached links if available
     if (cachedLinks) {
       return cachedLinks
     }
 
-    // If a request is already in progress, return that promise
     if (linksPromise) {
       return linksPromise
     }
 
-    // Fetch links from API
-    // Backend returns: { message, status, data }
     linksPromise = api.get<{ message: string; status: string; data: SocialLinks }>('/social/links', { public: true })
       .then(response => {
         if (!response.data) {

@@ -43,7 +43,6 @@ function DeleteAccountModal({
     const handlePasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const newPassword = e.target.value
         setPassword(newPassword)
-        // Clear error when user starts typing
         if (error) {
             setError('')
         }

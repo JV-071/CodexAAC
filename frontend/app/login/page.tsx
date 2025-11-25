@@ -28,7 +28,6 @@ function LoginForm() {
   const [checkingAuth, setCheckingAuth] = useState(true)
 
   useEffect(() => {
-    // Check for expired or unauthorized redirects
     const expired = searchParams.get('expired')
     const unauthorized = searchParams.get('unauthorized')
     
@@ -39,15 +38,10 @@ function LoginForm() {
       setError('You are not authorized. Please login again.')
       setCheckingAuth(false)
     } else {
-      // Check if user is already authenticated
       const checkAuth = () => {
-        // First, check locally if user has a valid token
         if (authService.isAuthenticated()) {
-          // Token exists and is valid locally - redirect to account
-          // Backend will validate on the next request if needed
           router.push('/account')
         } else {
-          // No valid token locally - show login form
           setCheckingAuth(false)
         }
       }
@@ -76,25 +70,18 @@ function LoginForm() {
         token: requires2FA ? twoFactorToken : undefined,
       }, { public: true })
 
-      // Check if 2FA is required
       if (data.requires2FA) {
         setRequires2FA(true)
         setError('')
         return
       }
 
-      // Save token (localStorage in dev, cookie in production)
-      // In development, we need to save to localStorage for Authorization header
-      // In production, backend sets httpOnly cookie
       if (data.token) {
         authService.saveToken(data.token)
       }
-      
-      // Redirect to account page
       router.push('/account')
     } catch (err: any) {
       setError(err.message || 'Invalid email or password. Please try again.')
-      // Reset 2FA state on error
       if (err.message && !err.message.includes('2FA')) {
         setRequires2FA(false)
         setTwoFactorToken('')
@@ -104,7 +91,6 @@ function LoginForm() {
     }
   }
 
-  // Show loading state while checking authentication
   if (checkingAuth) {
     return (
       <div>

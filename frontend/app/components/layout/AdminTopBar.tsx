@@ -125,12 +125,10 @@ export default function AdminTopBar() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
 
-  // Memoized handler to avoid recreation
   const handleClickOutside = useCallback((event: MouseEvent) => {
     const target = event.target as Node
     const container = containerRef.current
     
-    // If click is outside the entire nav container, close dropdown
     if (container && !container.contains(target)) {
       setOpenDropdown(null)
     }
@@ -141,7 +139,6 @@ export default function AdminTopBar() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [handleClickOutside])
 
-  // Memoized handlers
   const handleDropdownToggle = useCallback((label: string) => {
     setOpenDropdown(prev => prev === label ? null : label)
   }, [])

@@ -37,7 +37,6 @@ func GetMaintenanceStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			// No maintenance record exists, create default
 			_, err = database.DB.ExecContext(ctx,
 				"INSERT INTO maintenance (id, enabled, message, updated_at) VALUES (1, false, '', NOW())",
 			)
@@ -55,11 +54,8 @@ func GetMaintenanceStatusHandler(w http.ResponseWriter, r *http.Request) {
 			status.Message = message.String
 		}
 		if updatedAtStr.Valid {
-			// Parse the timestamp string from MySQL (format: "2006-01-02 15:04:05")
-			// Optimized: Try MySQL format first (most common), then RFC3339 as fallback
 			parsedTime, err := time.Parse("2006-01-02 15:04:05", updatedAtStr.String)
 			if err != nil {
-				// Try RFC3339 format as fallback
 				if parsedTime, err = time.Parse(time.RFC3339, updatedAtStr.String); err == nil {
 					status.UpdatedAt = parsedTime.Format(time.RFC3339)
 				}
@@ -82,9 +78,8 @@ func GetMaintenanceStatusPublicHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := database.DB.QueryRowContext(ctx,
 		"SELECT enabled, message FROM maintenance WHERE id = 1",
-	).Scan(&enabled, &message)
+		).Scan(&enabled, &message)
 
-	// Return minimal info: only message if maintenance is enabled
 	response := map[string]interface{}{
 		"maintenance": false,
 		"message":     "",
@@ -115,7 +110,6 @@ func ToggleMaintenanceHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Ensure maintenance record exists
 	_, err := database.DB.ExecContext(ctx,
 		"INSERT INTO maintenance (id, enabled, message, updated_at) VALUES (1, ?, ?, NOW()) ON DUPLICATE KEY UPDATE enabled = ?, message = ?, updated_at = NOW()",
 		request.Enabled, request.Message, request.Enabled, request.Message,
