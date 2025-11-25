@@ -165,12 +165,18 @@ func GetCharactersHandler(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	type Character struct {
-		ID       int    `json:"id"`
-		Name     string `json:"name"`
-		Vocation string `json:"vocation"`
-		Level    int    `json:"level"`
-		World    string `json:"world"`
-		Status   string `json:"status"`
+		ID         int    `json:"id"`
+		Name       string `json:"name"`
+		Vocation   string `json:"vocation"`
+		Level      int    `json:"level"`
+		World      string `json:"world"`
+		Status     string `json:"status"`
+		LookType   int    `json:"lookType"`
+		LookHead   int    `json:"lookHead"`
+		LookBody   int    `json:"lookBody"`
+		LookLegs   int    `json:"lookLegs"`
+		LookFeet   int    `json:"lookFeet"`
+		LookAddons int    `json:"lookAddons"`
 	}
 
 	query := `
@@ -179,7 +185,13 @@ func GetCharactersHandler(w http.ResponseWriter, r *http.Request) {
 			p.name, 
 			p.vocation, 
 			p.level,
-			CASE WHEN po.player_id IS NOT NULL THEN 'online' ELSE 'offline' END as status
+			CASE WHEN po.player_id IS NOT NULL THEN 'online' ELSE 'offline' END as status,
+			COALESCE(p.looktype, 128) as looktype,
+			COALESCE(p.lookhead, 0) as lookhead,
+			COALESCE(p.lookbody, 0) as lookbody,
+			COALESCE(p.looklegs, 0) as looklegs,
+			COALESCE(p.lookfeet, 0) as lookfeet,
+			COALESCE(p.lookaddons, 0) as lookaddons
 		FROM players p
 		LEFT JOIN players_online po ON p.id = po.player_id
 		WHERE p.account_id = ?
@@ -202,7 +214,7 @@ func GetCharactersHandler(w http.ResponseWriter, r *http.Request) {
 		var vocationID int
 		var status string
 		
-		if err := rows.Scan(&char.ID, &char.Name, &vocationID, &char.Level, &status); err != nil {
+		if err := rows.Scan(&char.ID, &char.Name, &vocationID, &char.Level, &status, &char.LookType, &char.LookHead, &char.LookBody, &char.LookLegs, &char.LookFeet, &char.LookAddons); err != nil {
 			utils.WriteError(w, http.StatusInternalServerError, "Error reading character data")
 			return
 		}
@@ -248,6 +260,12 @@ func GetCharacterDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		Created      int64  `json:"created"`
 		AccountStatus string `json:"accountStatus"`
 		Status       string `json:"status"` // online/offline
+		LookType     int    `json:"lookType"`
+		LookHead     int    `json:"lookHead"`
+		LookBody     int    `json:"lookBody"`
+		LookLegs     int    `json:"lookLegs"`
+		LookFeet     int    `json:"lookFeet"`
+		LookAddons   int    `json:"lookAddons"`
 	}
 
 	type Death struct {
@@ -281,7 +299,13 @@ func GetCharacterDetailsHandler(w http.ResponseWriter, r *http.Request) {
 			COALESCE(t.name, 'Unknown') as town_name,
 			g.name as guild_name,
 			gr.name as guild_rank,
-			COALESCE(a.premdays, 0) as premdays
+			COALESCE(a.premdays, 0) as premdays,
+			COALESCE(p.looktype, 128) as looktype,
+			COALESCE(p.lookhead, 0) as lookhead,
+			COALESCE(p.lookbody, 0) as lookbody,
+			COALESCE(p.looklegs, 0) as looklegs,
+			COALESCE(p.lookfeet, 0) as lookfeet,
+			COALESCE(p.lookaddons, 0) as lookaddons
 		FROM players p
 		LEFT JOIN players_online po ON p.id = po.player_id
 		LEFT JOIN towns t ON p.town_id = t.id
@@ -307,6 +331,12 @@ func GetCharacterDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		&guildName,
 		&guildRank,
 		&premdays,
+		&char.LookType,
+		&char.LookHead,
+		&char.LookBody,
+		&char.LookLegs,
+		&char.LookFeet,
+		&char.LookAddons,
 	)
 
 	if err == sql.ErrNoRows {

@@ -1,12 +1,3 @@
-export interface Character {
-    id: number
-    name: string
-    vocation: string
-    level: number
-    world: string
-    status: 'online' | 'offline'
-}
-
 export interface Ticket {
     id: number
     subject: string
@@ -35,6 +26,5 @@ export interface ApiResponse<T> {
     data: T
 }
 
-export interface CharactersApiResponse extends ApiResponse<Character[]> {}
 export interface AccountApiResponse extends ApiResponse<AccountInfo> {}
 

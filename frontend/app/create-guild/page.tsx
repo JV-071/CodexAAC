@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { api } from '../services/api'
 import type { ApiResponse } from '../types/account'
-import type { Character } from '../types/account'
+import type { Character } from '../types/character'
 import type { CreateGuildResponse } from '../types/guild'
 
 const GUILD_NAME_MIN_LENGTH = 3

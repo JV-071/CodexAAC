@@ -5,7 +5,9 @@ import Link from 'next/link'
 import { authService } from '../services/auth'
 import { api } from '../services/api'
 import { useServerName } from '../hooks/useServerName'
-import type { Character, Ticket, AccountInfo, CharactersApiResponse, AccountApiResponse } from '../types/account'
+import { makeOutfit } from '../utils/outfit'
+import type { Ticket, AccountInfo, AccountApiResponse } from '../types/account'
+import type { Character, CharactersApiResponse } from '../types/character'
 
 // Constants moved outside component to avoid recreation
 const EMPTY_TICKETS: Ticket[] = []
@@ -213,6 +215,7 @@ export default function AccountManagementPage() {
                                         <thead>
                                             <tr className="border-b border-[#404040]/60">
                                                 <th className="text-left text-[#ffd700] text-sm font-bold py-3 px-2">#</th>
+                                                <th className="text-left text-[#ffd700] text-sm font-bold py-3 px-2"></th>
                                                 <th className="text-left text-[#ffd700] text-sm font-bold py-3 px-2">Name</th>
                                                 <th className="text-left text-[#ffd700] text-sm font-bold py-3 px-2">Vocation</th>
                                                 <th className="text-left text-[#ffd700] text-sm font-bold py-3 px-2">Level</th>
@@ -227,6 +230,22 @@ export default function AccountManagementPage() {
                                                     className="border-b border-[#404040]/30 hover:bg-[#1a1a1a]/50 transition-all"
                                                 >
                                                     <td className="py-3 px-2 text-[#d0d0d0] text-sm">{idx + 1}</td>
+                                                    <td className="py-3 px-2">
+                                                        <div className="w-10 h-10 flex items-center justify-center bg-[#1a1a1a] rounded border border-[#404040]/60 overflow-hidden">
+                                                            <img
+                                                                src={makeOutfit({
+                                                                    id: char.lookType,
+                                                                    addons: char.lookAddons,
+                                                                    head: char.lookHead,
+                                                                    body: char.lookBody,
+                                                                    legs: char.lookLegs,
+                                                                    feet: char.lookFeet,
+                                                                })}
+                                                                alt={`${char.name} outfit`}
+                                                                className="w-full h-full object-contain object-center"
+                                                            />
+                                                        </div>
+                                                    </td>
                                                     <td className="py-3 px-2">
                                                         <Link
                                                             href={`/characters/${char.name}`}
