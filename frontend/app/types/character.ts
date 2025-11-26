@@ -42,6 +42,8 @@ export interface CharacterDetails extends Outfit {
   skillFish: number
   soul?: number
   cap?: number
+  experience?: number
+  experienceToNextLevel?: number
   equipment?: EquipmentItem[]
 }
 

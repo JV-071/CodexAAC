@@ -56,9 +56,11 @@ type CharacterDetails struct {
 	SkillDist     int             `json:"skillDist"`
 	SkillDef      int             `json:"skillDef"`
 	SkillFish     int             `json:"skillFish"`
-	Soul          int             `json:"soul"`
-	Cap           int             `json:"cap"`
-	Equipment     []EquipmentItem `json:"equipment"`
+	Soul                int             `json:"soul"`
+	Cap                 int             `json:"cap"`
+	Experience           int64           `json:"experience"`
+	ExperienceToNextLevel int64          `json:"experienceToNextLevel"`
+	Equipment            []EquipmentItem `json:"equipment"`
 }
 
 type EquipmentItem struct {
@@ -338,6 +340,7 @@ func GetCharacterDetailsHandler(w http.ResponseWriter, r *http.Request) {
 	var townName, guildName, guildRank sql.NullString
 	var townID sql.NullInt64
 	var premdays int
+	var experience int64
 
 	query := `
 		SELECT
@@ -373,7 +376,8 @@ func GetCharacterDetailsHandler(w http.ResponseWriter, r *http.Request) {
 			COALESCE(p.skill_shielding, 10) as skill_shielding,
 			COALESCE(p.skill_fishing, 10) as skill_fishing,
 			COALESCE(p.soul, 0) as soul,
-			COALESCE(p.cap, 0) as cap
+			COALESCE(p.cap, 0) as cap,
+			COALESCE(p.experience, 0) as experience
 		FROM players p
 		LEFT JOIN players_online po ON p.id = po.player_id
 		LEFT JOIN towns t ON p.town_id = t.id
@@ -420,6 +424,7 @@ func GetCharacterDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		&char.SkillFish,
 		&char.Soul,
 		&char.Cap,
+		&experience,
 	)
 
 	if err == sql.ErrNoRows {
@@ -465,6 +470,16 @@ func GetCharacterDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		char.AccountStatus = "VIP Account"
 	} else {
 		char.AccountStatus = "Free Account"
+	}
+
+	char.Experience = experience
+	
+	nextLevel := char.Level + 1
+	experienceForNextLevel := (50*int64(nextLevel-1)*int64(nextLevel-1)*int64(nextLevel-1) - 150*int64(nextLevel-1)*int64(nextLevel-1) + 400*int64(nextLevel-1)) / 3
+	if experienceForNextLevel > experience {
+		char.ExperienceToNextLevel = experienceForNextLevel - experience
+	} else {
+		char.ExperienceToNextLevel = 0
 	}
 
 	equipmentQuery := `

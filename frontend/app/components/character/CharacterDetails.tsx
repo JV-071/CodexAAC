@@ -21,7 +21,7 @@ function EquipmentSlot({ item, placeholder, placeholderSize = 'base' }: Equipmen
   }
 
   return (
-    <div className="w-10 h-10 bg-[#3a3a3a] border border-[#1a1a1a] rounded flex items-center justify-center shadow-inner relative">
+    <div className="w-8 h-8 bg-[#3a3a3a] border border-[#1a1a1a] rounded flex items-center justify-center shadow-inner relative">
       {item ? (
         <img
           src={getItemImageUrl(item.itemId)}
@@ -44,6 +44,10 @@ function EquipmentSlot({ item, placeholder, placeholderSize = 'base' }: Equipmen
 export default function CharacterDetailsSection({ character }: { character: CharacterDetails }) {
   const healthPercent = character.healthMax > 0 ? (character.health / character.healthMax) * 100 : 0
   const manaPercent = character.manaMax > 0 ? (character.mana / character.manaMax) * 100 : 0
+  
+  const experienceForNextLevel = (character.experience || 0) + (character.experienceToNextLevel || 0)
+  const experiencePercent =
+    experienceForNextLevel > 0 ? ((character.experience || 0) / experienceForNextLevel) * 100 : 0
 
   const equipmentMap = (() => {
     if (!character.equipment) return new Map<number, EquipmentItem>()
@@ -77,7 +81,7 @@ export default function CharacterDetailsSection({ character }: { character: Char
                   feet: character.lookFeet,
                 })}
                 alt={`${character.name} outfit`}
-                className="w-12 h-12 object-contain"
+                className="w-16 h-16 object-contain"
               />
             </div>
           </div>
@@ -114,76 +118,109 @@ export default function CharacterDetailsSection({ character }: { character: Char
         </div>
 
         <div className="pt-4 border-t border-[#404040]/40">
-          <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-4">
-            <div className="text-center">
-              <div className="text-[#888] text-xs mb-1">Level</div>
-              <div className="text-[#ffd700] font-bold text-lg">{character.level}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-[#888] text-xs mb-1">ML</div>
-              <div className="text-[#d0d0d0] font-semibold">{character.magicLevel}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-[#888] text-xs mb-1">Fist</div>
-              <div className="text-[#d0d0d0] font-semibold">{character.skillFist}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-[#888] text-xs mb-1">Club</div>
-              <div className="text-[#d0d0d0] font-semibold">{character.skillClub}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-[#888] text-xs mb-1">Sword</div>
-              <div className="text-[#d0d0d0] font-semibold">{character.skillSword}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-[#888] text-xs mb-1">Axe</div>
-              <div className="text-[#d0d0d0] font-semibold">{character.skillAxe}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-[#888] text-xs mb-1">Dist</div>
-              <div className="text-[#d0d0d0] font-semibold">{character.skillDist}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-[#888] text-xs mb-1">Def</div>
-              <div className="text-[#d0d0d0] font-semibold">{character.skillDef}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-[#888] text-xs mb-1">Fish</div>
-              <div className="text-[#d0d0d0] font-semibold">{character.skillFish}</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="pt-4 border-t border-[#404040]/40">
-          <div className="bg-[#1f1f1f]/80 border-2 border-[#404040]/60 rounded-lg p-3 shadow-lg">
-            <h3 className="text-[#ffd700] text-sm font-bold mb-2 text-center">Inventory:</h3>
-            <div className="flex gap-1.5 justify-center mb-2">
-              <div className="flex flex-col gap-1.5 mt-[1rem]">
-                <EquipmentSlot item={getItemForSlot(2)} placeholder="💎" placeholderSize="lg" />
-                <EquipmentSlot item={null} placeholder="🧤" />
-                <EquipmentSlot item={getItemForSlot(9)} placeholder="💍" />
+          <div className="flex gap-4 items-start flex-wrap">
+            <div className="flex-1 space-y-4">
+              <div className="bg-[#1f1f1f]/80 border-2 border-[#404040]/60 rounded-lg p-3 shadow-lg">
+                <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-4">
+                  <div className="text-center">
+                    <div className="text-[#888] text-xs mb-1">Level</div>
+                    <div className="text-[#ffd700] font-bold text-lg">{character.level}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[#888] text-xs mb-1">ML</div>
+                    <div className="text-[#d0d0d0] font-semibold">{character.magicLevel}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[#888] text-xs mb-1">Fist</div>
+                    <div className="text-[#d0d0d0] font-semibold">{character.skillFist}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[#888] text-xs mb-1">Club</div>
+                    <div className="text-[#d0d0d0] font-semibold">{character.skillClub}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[#888] text-xs mb-1">Sword</div>
+                    <div className="text-[#d0d0d0] font-semibold">{character.skillSword}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[#888] text-xs mb-1">Axe</div>
+                    <div className="text-[#d0d0d0] font-semibold">{character.skillAxe}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[#888] text-xs mb-1">Dist</div>
+                    <div className="text-[#d0d0d0] font-semibold">{character.skillDist}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[#888] text-xs mb-1">Def</div>
+                    <div className="text-[#d0d0d0] font-semibold">{character.skillDef}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[#888] text-xs mb-1">Fish</div>
+                    <div className="text-[#d0d0d0] font-semibold">{character.skillFish}</div>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <EquipmentSlot item={getItemForSlot(1)} placeholder="⛑️" />
-                <EquipmentSlot item={getItemForSlot(4)} placeholder="🛡️" />
-                <EquipmentSlot item={getItemForSlot(7)} placeholder="👖" />
-                <EquipmentSlot item={getItemForSlot(8)} placeholder="👢" />
-              </div>
-
-              <div className="flex flex-col gap-1.5 mt-[1rem]">
-                <EquipmentSlot item={getItemForSlot(3)} placeholder="🎒" />
-                <EquipmentSlot item={null} placeholder="🧤" />
-                <EquipmentSlot item={getItemForSlot(10)} placeholder="➡️" />
+              <div className="bg-[#1f1f1f]/80 border-2 border-[#404040]/60 rounded-lg p-3 shadow-lg">
+                <div className="space-y-2">
+                  <div>
+                    <div className="text-[#d0d0d0] text-xs mb-1">
+                      Experience: Have <span className="font-bold text-[#ffd700]">{formatNumber(character.experience || 0)}</span> and need{' '}
+                      <span className="font-bold text-[#ffd700]">{formatNumber(character.experienceToNextLevel || 0)}</span> to Level{' '}
+                      <span className="font-bold text-[#ffd700]">{character.level + 1}</span>.
+                    </div>
+                    {character.experience !== undefined && character.experienceToNextLevel !== undefined && (
+                      <div className="text-[#d0d0d0] text-xs">
+                        <span className="font-bold text-[#ffd700]">{formatNumber(character.experience)}</span>/
+                        {formatNumber(experienceForNextLevel)} ({experiencePercent.toFixed(2)}%)
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-[#d0d0d0] text-xs mb-1">Percent:</div>
+                    <div className="w-full bg-[#1a1a1a] rounded-full h-3 border border-[#404040] overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-green-600 to-green-500 transition-all duration-300"
+                        style={{ width: `${experiencePercent}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="flex gap-2 mt-2">
-              <div className="bg-[#3a3a3a] border border-[#2a2a2a] rounded px-2 py-1.5 flex-1 text-center">
-                <span className="text-white text-xs font-medium">Soul: {formatNumber(character.soul || 0)}</span>
+            <div className="bg-[#1f1f1f]/80 border-2 border-[#404040]/60 rounded-lg p-2 shadow-lg">
+              <h3 className="text-[#ffd700] text-xs font-bold mb-1.5 text-center">Inventory:</h3>
+              <div className="flex gap-1 justify-center mb-1.5">
+                <div className="flex flex-col gap-1 mt-[0.75rem]">
+                  <EquipmentSlot item={getItemForSlot(2)} placeholder="💎" placeholderSize="lg" />
+                  <EquipmentSlot item={null} placeholder="🧤" />
+                  <EquipmentSlot item={getItemForSlot(9)} placeholder="💍" />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <EquipmentSlot item={getItemForSlot(1)} placeholder="🪖" />
+                  <EquipmentSlot item={getItemForSlot(4)} placeholder="🦺" />
+                  <EquipmentSlot item={getItemForSlot(7)} placeholder="👖" />
+                  <EquipmentSlot item={getItemForSlot(8)} placeholder="🥾" />
+                </div>
+
+                <div className="flex flex-col gap-1 mt-[0.75rem]">
+                  <EquipmentSlot item={getItemForSlot(3)} placeholder="🎒" />
+                  <EquipmentSlot item={null} placeholder="🛡️" />
+                  <EquipmentSlot item={getItemForSlot(10)} placeholder="➡️" />
+                </div>
               </div>
-              <div className="bg-[#3a3a3a] border border-[#2a2a2a] rounded px-2 py-1.5 flex-1 text-center">
-                <span className="text-white text-xs font-medium">Cap: {formatNumber(character.cap || 0)}</span>
+
+              <div className="flex gap-1.5 mt-1.5">
+                <div className="bg-[#3a3a3a] border border-[#2a2a2a] rounded px-1.5 py-1 flex-1 text-center">
+                  <div className="text-white text-xs font-medium">Soul:</div>
+                  <div className="text-white text-xs font-semibold">{formatNumber(character.soul || 0)}</div>
+                </div>
+                <div className="bg-[#3a3a3a] border border-[#2a2a2a] rounded px-1.5 py-1 flex-1 text-center">
+                  <div className="text-white text-xs font-medium">Cap:</div>
+                  <div className="text-white text-xs font-semibold">{formatNumber(character.cap || 0)}</div>
+                </div>
               </div>
             </div>
           </div>
