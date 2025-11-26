@@ -341,7 +341,8 @@ This project is part of CodexAAC.
 
 ## 📞 Support
 
-For support, open an issue in the project repository.
+- **Discord**: [Join our Discord server](https://discord.com/invite/uQsQkfmTEE)
+- **Issues**: Open an issue in the project repository
 
 ---
 
