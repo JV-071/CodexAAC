@@ -3,15 +3,22 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"os"
 	"time"
 
 	"codexaac-backend/internal/database"
+	"codexaac-backend/pkg/auth"
 	"codexaac-backend/pkg/utils"
 )
 
 type RegisterRequest struct {
 	Password string `json:"password"`
 	Email    string `json:"email"`
+}
+
+type RegisterResponse struct {
+	Token   string `json:"token"`
+	Message string `json:"message"`
 }
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +75,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		VALUES (?, ?, ?, ?, 0, 1)
 	`
 	
-	_, err = database.DB.ExecContext(ctx, query, "", hashedPassword, req.Email, time.Now().Unix())
+	result, err := database.DB.ExecContext(ctx, query, "", hashedPassword, req.Email, time.Now().Unix())
 	if err != nil {
 		if utils.HandleDBError(w, err) {
 			return
@@ -77,5 +84,23 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.WriteSuccess(w, http.StatusCreated, "Account created successfully", nil)
+	accountID, err := result.LastInsertId()
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, "Error getting account ID")
+		return
+	}
+
+	jwtToken, err := auth.GenerateToken(int(accountID))
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, "Error generating token")
+		return
+	}
+
+	isSecure := r.TLS != nil || os.Getenv("ENV") == "production"
+	utils.SetAuthCookie(w, jwtToken, isSecure)
+
+	utils.WriteJSON(w, http.StatusCreated, RegisterResponse{
+		Token:   jwtToken,
+		Message: "Account created successfully",
+	})
 }
