@@ -1,127 +1,127 @@
-# CodexAAC - Site de Gerenciamento de Servidor Tibia
+# CodexAAC - Tibia Server Management Website
 
-Site completo para gerenciamento de servidor Tibia desenvolvido com Go (backend) e Next.js (frontend).
+Complete website for Tibia server management developed with Go (backend) and Next.js (frontend).
 
-## 📋 Requisitos
+## 📋 Requirements
 
-Antes de começar, certifique-se de ter instalado:
+Before starting, make sure you have installed:
 
 - **Go 1.24+** - [Download](https://go.dev/dl/)
 - **Node.js 18+** - [Download](https://nodejs.org/)
-- **pnpm** - Gerenciador de pacotes Node.js
-- **MySQL 5.7+ ou 8.0+** - Banco de dados
-- **Git** - Controle de versão
+- **pnpm** - Node.js package manager
+- **MySQL 5.7+ or 8.0+** - Database
+- **Git** - Version control
 
-## 🚀 Instalação
+## 🚀 Installation
 
-### 1. Instalar Go 1.24+
+### 1. Install Go 1.24+
 
 #### Windows:
 
-1. Baixe o instalador do Go em: https://go.dev/dl/
-2. Execute o instalador e siga as instruções
-3. Verifique a instalação abrindo o PowerShell ou CMD e executando:
+1. Download the Go installer from: https://go.dev/dl/
+2. Run the installer and follow the instructions
+3. Verify the installation by opening PowerShell or CMD and running:
 ```bash
 go version
 ```
-Deve mostrar algo como: `go version go1.24.0 windows/amd64`
+Should display something like: `go version go1.24.0 windows/amd64`
 
-### 2. Instalar Node.js
+### 2. Install Node.js
 
 #### Windows:
 
-1. Baixe o instalador LTS do Node.js em: https://nodejs.org/
-2. Execute o instalador e siga as instruções
-3. Verifique a instalação:
+1. Download the LTS installer for Node.js from: https://nodejs.org/
+2. Run the installer and follow the instructions
+3. Verify the installation:
 ```bash
 node --version
 npm --version
 ```
 
-### 3. Instalar pnpm
+### 3. Install pnpm
 
-Com o Node.js instalado, instale o pnpm globalmente:
+With Node.js installed, install pnpm globally:
 
 ```bash
 npm install -g pnpm
 ```
 
-Verifique a instalação:
+Verify the installation:
 ```bash
 pnpm --version
 ```
 
-### 4. Clonar o Repositório
+### 4. Clone the Repository
 
 ```bash
-git clone <url-do-repositorio>
+git clone <repository-url>
 cd CodexAAC
 ```
 
-### 5. Configurar o Banco de Dados MySQL
+### 5. Configure MySQL Database
 
-1. Crie um banco de dados MySQL:
+1. Create a MySQL database:
 ```sql
 CREATE DATABASE codexaac CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-2. Importe o schema do banco de dados (se houver arquivo SQL):
+2. Import the database schema (if there's a SQL file):
 ```bash
 mysql -u root -p codexaac < database.sql
 ```
 
-### 6. Configurar Variáveis de Ambiente
+### 6. Configure Environment Variables
 
 #### Backend
 
-Crie um arquivo `.env` na pasta `backend/`:
+Create a `.env` file in the `backend/` folder:
 
 ```env
-# Banco de Dados
-DATABASE_URL=mysql://usuario:senha@localhost:3306/codexaac
+# Database
+DATABASE_URL=mysql://user:password@localhost:3306/codexaac
 
-# JWT (IMPORTANTE: Use uma chave segura em produção!)
-JWT_SECRET=sua-chave-secreta-super-segura-aqui
+# JWT (IMPORTANT: Use a secure key in production!)
+JWT_SECRET=your-super-secure-secret-key-here
 
-# CORS (origens permitidas, separadas por vírgula)
+# CORS (allowed origins, comma-separated)
 CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
 
-# Caminho para o servidor Tibia (opcional)
-# SERVER_PATH=C:/caminho/para/seu/servidor/tibia
+# Path to Tibia server (optional)
+# SERVER_PATH=C:/path/to/your/tibia/server
 
-# Configurações Opcionais
+# Optional Settings
 ACCOUNT_DELETION_GRACE_PERIOD_DAYS=30
 MIN_GUILD_LEVEL=8
 ```
 
-#### Towns (opcional)
+#### Towns (optional)
 
-Você pode configurar as towns que estarão disponíveis no frontend para seleção durante a criação de personagens com a variável `CHARACTER_TOWNS` no `.env` do backend.
+You can configure the towns that will be available in the frontend for selection during character creation using the `CHARACTER_TOWNS` variable in the backend `.env`.
 
-Formato (exemplo):
+Format (example):
 ```env
 CHARACTER_TOWNS=1:Rookgaard,2:Thais,3:Venore
 ```
-Ou:
+Or:
 ```env
 CHARACTER_TOWNS=Rookgaard=1,Thais=2
 ```
-Se a variável não estiver definida, o servidor adicionará automaticamente `Rookgaard` (id 1) como padrão.
+If the variable is not defined, the server will automatically add `Rookgaard` (id 1) as default.
 
-**⚠️ IMPORTANTE:**
-- Substitua `usuario` e `senha` pelas credenciais do seu MySQL
-- Gere uma chave JWT segura para produção (pode usar: `openssl rand -base64 32`)
-- O `SERVER_PATH` é opcional e deve apontar para a pasta raiz do seu servidor Tibia (onde está o `config.lua`)
+**⚠️ IMPORTANT:**
+- Replace `user` and `password` with your MySQL credentials
+- Generate a secure JWT key for production (you can use: `openssl rand -base64 32`)
+- `SERVER_PATH` is optional and should point to the root folder of your Tibia server (where `config.lua` is located)
 
 #### Frontend
 
-Crie um arquivo `.env.local` na pasta `frontend/` (se necessário):
+Create a `.env.local` file in the `frontend/` folder (if needed):
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8080
 ```
 
-### 7. Instalar Dependências
+### 7. Install Dependencies
 
 #### Backend (Go)
 
@@ -130,16 +130,16 @@ cd backend
 go mod download
 ```
 
-#### Frontend (Node.js com pnpm)
+#### Frontend (Node.js with pnpm)
 
 ```bash
 cd frontend
 pnpm install
 ```
 
-## 🏃 Como Executar
+## 🏃 How to Run
 
-### Desenvolvimento
+### Development
 
 #### Terminal 1 - Backend
 
@@ -148,7 +148,7 @@ cd backend
 go run cmd/server/main.go
 ```
 
-O servidor backend estará rodando em: `http://localhost:8080`
+The backend server will be running at: `http://localhost:8080`
 
 #### Terminal 2 - Frontend
 
@@ -157,11 +157,11 @@ cd frontend
 pnpm dev
 ```
 
-O frontend estará rodando em: `http://localhost:3000`
+The frontend will be running at: `http://localhost:3000`
 
-### Produção
+### Production
 
-#### Build do Frontend
+#### Frontend Build
 
 ```bash
 cd frontend
@@ -169,7 +169,7 @@ pnpm build
 pnpm start
 ```
 
-#### Build do Backend
+#### Backend Build
 
 ```bash
 cd backend
@@ -177,173 +177,172 @@ go build -o server.exe cmd/server/main.go
 ./server.exe
 ```
 
-## 📁 Estrutura do Projeto
+## 📁 Project Structure
 
 ```
 CodexAAC/
 ├── backend/                 # API Backend (Go)
 │   ├── cmd/
 │   │   └── server/
-│   │       └── main.go      # Ponto de entrada do servidor
+│   │       └── main.go      # Server entry point
 │   ├── internal/
-│   │   ├── database/        # Conexão com banco de dados
-│   │   ├── handlers/        # Handlers HTTP
-│   │   └── jobs/            # Jobs em background
+│   │   ├── database/        # Database connection
+│   │   ├── handlers/        # HTTP handlers
+│   │   └── jobs/           # Background jobs
 │   ├── pkg/
-│   │   ├── auth/            # Autenticação JWT
-│   │   ├── config/          # Configurações do servidor
-│   │   ├── middleware/      # Middlewares HTTP
-│   │   ├── twofactor/       # Autenticação 2FA
-│   │   └── utils/           # Utilitários
-│   ├── go.mod               # Dependências Go
-│   └── .env                 # Variáveis de ambiente
+│   │   ├── auth/           # JWT authentication
+│   │   ├── config/         # Server configuration
+│   │   ├── middleware/     # HTTP middlewares
+│   │   ├── twofactor/      # Two-factor authentication
+│   │   └── utils/          # Utilities
+│   ├── go.mod              # Go dependencies
+│   └── .env                # Environment variables
 │
-├── frontend/                # Aplicação Web (Next.js)
-│   ├── app/                 # Next.js App Router
-│   │   ├── components/      # Componentes React
-│   │   ├── services/        # Serviços API
+├── frontend/               # Web Application (Next.js)
+│   ├── app/                # Next.js App Router
+│   │   ├── components/     # React components
+│   │   ├── services/       # API services
 │   │   └── ...
-│   ├── package.json         # Dependências Node.js
-│   └── .env.local           # Variáveis de ambiente
+│   ├── package.json        # Node.js dependencies
+│   └── .env.local          # Environment variables
 │
-└── README.md                # Este arquivo
+└── README.md               # This file
 ```
 
-## 🔧 Tecnologias Utilizadas
+## 🔧 Technologies Used
 
 ### Backend
-- **Go 1.24+** - Linguagem de programação
-- **Gorilla Mux** - Roteador HTTP
-- **MySQL** - Banco de dados
-- **JWT** - Autenticação por tokens
-- **TOTP** - Autenticação de dois fatores
+- **Go 1.24+** - Programming language
+- **Gorilla Mux** - HTTP router
+- **MySQL** - Database
+- **JWT** - Token authentication
+- **TOTP** - Two-factor authentication
 
 ### Frontend
-- **Next.js 16** - Framework React
-- **TypeScript** - Tipagem estática
-- **Tailwind CSS** - Framework CSS
-- **React 19** - Biblioteca UI
+- **Next.js 16** - React framework
+- **TypeScript** - Static typing
+- **Tailwind CSS** - CSS framework
+- **React 19** - UI library
 
-## 📡 Endpoints da API
+## 📡 API Endpoints
 
-### Autenticação
-- `POST /api/login` - Login de usuário
-- `POST /api/register` - Registro de usuário
+### Authentication
+- `POST /api/login` - User login
+- `POST /api/register` - User registration
 - `POST /api/logout` - Logout
-- `POST /login.php` - Login do cliente Tibia
-- `POST /login` - Login do cliente Tibia (alternativo)
+- `POST /login.php` - Tibia client login
+- `POST /login` - Tibia client login (alternative)
 
-### Conta
-- `GET /api/account` - Detalhes da conta (autenticado)
-- `POST /api/account/delete` - Solicitar exclusão de conta
-- `POST /api/account/cancel-deletion` - Cancelar exclusão
-- `GET /api/account/settings` - Configurações da conta
-- `POST /api/account/settings` - Atualizar configurações
+### Account
+- `GET /api/account` - Account details (authenticated)
+- `DELETE /api/account` - Request account deletion
+- `POST /api/account/cancel-deletion` - Cancel deletion
+- `GET /api/account/settings` - Account settings
+- `POST /api/account/settings` - Update settings
 
-### Personagens
-- `GET /api/characters` - Listar personagens
-- `POST /api/characters` - Criar personagem
-- `GET /api/characters/{name}` - Detalhes do personagem
-- `GET /api/towns` - Listar cidades configuradas (usado na criação de personagens)
+### Characters
+- `GET /api/characters` - List characters
+- `POST /api/characters` - Create character
+- `GET /api/characters/{name}` - Character details
+- `GET /api/towns` - List configured towns (used in character creation)
 
-### Guildas
-- `GET /api/guilds` - Listar guildas
-- `GET /api/guilds/{name}` - Detalhes da guilda
-- `POST /api/guilds` - Criar guilda
-- `POST /api/guilds/{name}/invite` - Convidar jogador
-- `POST /api/guilds/{name}/accept-invite` - Aceitar convite
-- `POST /api/guilds/{name}/leave` - Sair da guilda
-- `POST /api/guilds/{name}/kick` - Expulsar jogador
+### Guilds
+- `GET /api/guilds` - List guilds
+- `GET /api/guilds/{name}` - Guild details
+- `POST /api/guilds` - Create guild
+- `POST /api/guilds/{name}/invite` - Invite player
+- `POST /api/guilds/{name}/accept-invite` - Accept invite
+- `POST /api/guilds/{name}/leave` - Leave guild
+- `POST /api/guilds/{name}/kick` - Kick player
 
 ### Admin
-- `GET /api/admin/stats` - Estatísticas do servidor
-- `GET /api/admin/accounts` - Listar contas
-- `GET /api/admin/maintenance` - Status de manutenção
-- `POST /api/admin/maintenance` - Ativar/desativar manutenção
+- `GET /api/admin/stats` - Server statistics
+- `GET /api/admin/accounts` - List accounts
+- `GET /api/admin/maintenance` - Maintenance status
+- `POST /api/admin/maintenance` - Toggle maintenance
 
-### Sistema
+### System
 - `GET /api/health` - Health check
-- `GET /api` - Mensagem de boas-vindas
+- `GET /api` - Welcome message
 
-## 🛠️ Comandos Úteis
+## 🛠️ Useful Commands
 
 ### Backend
 ```bash
-# Instalar dependências
+# Install dependencies
 go mod download
 
-# Executar servidor
+# Run server
 go run cmd/server/main.go
 
-# Build para produção
+# Build for production
 go build -o server.exe cmd/server/main.go
 
-# Executar testes (se houver)
+# Run tests (if any)
 go test ./...
 ```
 
 ### Frontend
 ```bash
-# Instalar dependências
+# Install dependencies
 pnpm install
 
-# Modo desenvolvimento
+# Development mode
 pnpm dev
 
-# Build para produção
+# Build for production
 pnpm build
 
-# Executar produção
+# Run production
 pnpm start
 
 # Linter
 pnpm lint
 ```
 
-## 🔒 Segurança
+## 🔒 Security
 
-- **JWT_SECRET**: Use uma chave forte e única em produção
-- **DATABASE_URL**: Não compartilhe credenciais do banco de dados
-- **CORS**: Configure apenas origens confiáveis em produção
-- **HTTPS**: Use HTTPS em produção
+- **JWT_SECRET**: Use a strong and unique key in production
+- **DATABASE_URL**: Do not share database credentials
+- **CORS**: Configure only trusted origins in production
+- **HTTPS**: Use HTTPS in production
 
-## 🐛 Solução de Problemas
+## 🐛 Troubleshooting
 
-### Erro de conexão com banco de dados
-- Verifique se o MySQL está rodando
-- Confirme as credenciais no arquivo `.env`
-- Verifique se o banco de dados foi criado
+### Database connection error
+- Check if MySQL is running
+- Verify credentials in the `.env` file
+- Check if the database was created
 
-### Erro "JWT_SECRET not configured"
-- Adicione `JWT_SECRET` no arquivo `.env` do backend
-- Reinicie o servidor após adicionar
+### "JWT_SECRET not configured" error
+- Add `JWT_SECRET` to the backend `.env` file
+- Restart the server after adding
 
-### Erro ao instalar dependências do frontend
-- Certifique-se de ter o Node.js 18+ instalado
-- Tente limpar o cache: `pnpm store prune`
-- Delete `node_modules` e `pnpm-lock.yaml` e reinstale
+### Frontend dependency installation error
+- Make sure you have Node.js 18+ installed
+- Try clearing the cache: `pnpm store prune`
+- Delete `node_modules` and `pnpm-lock.yaml` and reinstall
 
-### Porta já em uso
-- Altere a porta no arquivo `.env` (backend) ou `package.json` (frontend)
-- Ou encerre o processo que está usando a porta
+### Port already in use
+- Change the port in the `.env` file (backend) or `package.json` (frontend)
+- Or terminate the process using the port
 
-## 📝 Licença
+## 📝 License
 
-Este projeto faz parte do CodexAAC.
+This project is part of CodexAAC.
 
-## 🤝 Contribuindo
+## 🤝 Contributing
 
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
+1. Fork the project
+2. Create a branch for your feature (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## 📞 Suporte
+## 📞 Support
 
-Para suporte, abra uma issue no repositório do projeto.
+For support, open an issue in the project repository.
 
 ---
 
-**Desenvolvido com ❤️ para a comunidade Tibia**
-
+**Developed with ❤️ for the Tibia community**
