@@ -5,14 +5,12 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"codexaac-backend/internal/database"
-	"codexaac-backend/pkg/utils"
 	"github.com/joho/godotenv"
 )
 
@@ -24,7 +22,7 @@ func InitDatabase() error {
 		// Try to load .env from backend directory
 		backendDir := getBackendDir()
 		envPath := filepath.Join(backendDir, ".env")
-		
+
 		if err := godotenv.Load(envPath); err != nil {
 			// Try current directory
 			if err := godotenv.Load(); err != nil {
@@ -79,13 +77,13 @@ func CheckIfAlreadyInstalled(ctx context.Context) (bool, error) {
 // Exported for use in CLI tools
 func SyncDatabaseToSchema(backendDir string) error {
 	schemaPath := filepath.Join(backendDir, "prisma", "schema.prisma")
-	
+
 	// Pull all existing database structure into schema.prisma
 	// This syncs the schema with the database (doesn't delete anything from DB)
 	cmd := exec.Command("pnpm", "prisma", "db", "pull", "--force")
 	cmd.Dir = backendDir
 	output, err := cmd.CombinedOutput()
-	
+
 	if err != nil {
 		return fmt.Errorf("%s: %w", string(output), err)
 	}
@@ -123,7 +121,7 @@ func AddRequiredModelsToSchema(schemaPath string) error {
 	for scanner.Scan() {
 		line := scanner.Text()
 		lines = append(lines, line)
-		
+
 		// Check if models already exist (optimized: only check if not already found)
 		if !hasMaintenance && strings.Contains(line, "model maintenance") {
 			hasMaintenance = true
@@ -179,7 +177,7 @@ model changelogs {
 	defer file.Close()
 
 	writer := bufio.NewWriter(file)
-	
+
 	// Write all existing lines
 	for _, line := range lines {
 		if _, err := writer.WriteString(line + "\n"); err != nil {
@@ -193,7 +191,7 @@ model changelogs {
 			return fmt.Errorf("error writing maintenance model: %w", err)
 		}
 	}
-	
+
 	if !hasChangelogs {
 		if _, err := writer.WriteString(changelogsModel); err != nil {
 			return fmt.Errorf("error writing changelogs model: %w", err)
