@@ -10,6 +10,10 @@ export interface OutfitParams {
 export const makeOutfit = (params: OutfitParams): string => {
   const baseUrl = process.env.NEXT_PUBLIC_OUTFIT_IMAGE_BASE_URL?.trim()
 
+  if (!baseUrl) {
+    throw new Error('NEXT_PUBLIC_OUTFIT_IMAGE_BASE_URL is not defined in environment variables.')
+  }
+
   const { id, addons, head, body, legs, feet } = params
 
   const url = new URL(baseUrl)

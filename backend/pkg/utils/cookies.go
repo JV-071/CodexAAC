@@ -18,10 +18,11 @@ func SetAuthCookie(w http.ResponseWriter, token string, isSecure bool) {
 		MaxAge:   TokenCookieMaxAge,
 		HttpOnly: true,
 		Secure:   isSecure,
-		SameSite: http.SameSiteNoneMode,
 	}
 	
-	if !isSecure {
+	if isSecure {
+		cookie.SameSite = http.SameSiteNoneMode
+	} else {
 		cookie.SameSite = http.SameSiteLaxMode
 	}
 	
