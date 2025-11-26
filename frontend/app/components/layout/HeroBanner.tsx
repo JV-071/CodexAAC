@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useServerName } from '../../hooks/useServerName'
+import { authService } from '../../services/auth'
 
 export default function HeroBanner() {
   const images = [
@@ -10,7 +11,12 @@ export default function HeroBanner() {
   ]
 
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const serverName = useServerName()
+  
+  useEffect(() => {
+    setIsAuthenticated(authService.isAuthenticated())
+  }, [])
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -55,13 +61,15 @@ export default function HeroBanner() {
               
               {/* Call-to-Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3">
-                <a
-                  href="/create-account"
-                  className="inline-flex items-center justify-center gap-2 bg-[#ffd700] hover:bg-[#ffed4e] text-[#0a0a0a] font-bold py-3 px-6 rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 text-sm sm:text-base"
-                >
-                  <span>✨</span>
-                  Create Account
-                </a>
+                {!isAuthenticated && (
+                  <a
+                    href="/create-account"
+                    className="inline-flex items-center justify-center gap-2 bg-[#ffd700] hover:bg-[#ffed4e] text-[#0a0a0a] font-bold py-3 px-6 rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 text-sm sm:text-base"
+                  >
+                    <span>✨</span>
+                    Create Account
+                  </a>
+                )}
                 <a
                   href="/download"
                   className="inline-flex items-center justify-center gap-2 bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 text-sm sm:text-base"

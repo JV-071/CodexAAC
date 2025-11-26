@@ -1,8 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import { useState, useEffect } from 'react'
 import { useServerName } from '../../hooks/useServerName'
 import { useSocialLinks } from '../../hooks/useSocialLinks'
+import { authService } from '../../services/auth'
 
 interface MenuSection {
   title: string
@@ -12,6 +14,11 @@ interface MenuSection {
 export default function Sidebar() {
   const serverName = useServerName()
   const socialLinks = useSocialLinks()
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  
+  useEffect(() => {
+    setIsAuthenticated(authService.isAuthenticated())
+  }, [])
 
   const menuSections: MenuSection[] = [
     {
@@ -90,24 +97,31 @@ export default function Sidebar() {
             {section.title}
           </h3>
           <ul className="space-y-0.5">
-            {section.items.map((item) => (
-              <li key={item.label}>
-                <Link
-                  href={item.href}
-                  className="block px-2 py-1.5 text-[#d4d4d4] hover:text-[#ffd700] hover:bg-[#2a2a2a]/50 rounded text-xs transition-colors flex items-center justify-between group"
-                >
-                  <span className="flex items-center gap-1.5">
-                    {item.icon && <span className="text-[#ffd700]">{item.icon}</span>}
-                    {item.label}
-                  </span>
-                  {item.badge && (
-                    <span className="bg-[#ffd700] text-[#0a0a0a] text-[10px] font-bold px-1.5 py-0.5 rounded">
-                      {item.badge}
+            {section.items
+              .filter((item) => {
+                if (item.label === 'Create Account' && isAuthenticated) {
+                  return false
+                }
+                return true
+              })
+              .map((item) => (
+                <li key={item.label}>
+                  <Link
+                    href={item.href}
+                    className="block px-2 py-1.5 text-[#d4d4d4] hover:text-[#ffd700] hover:bg-[#2a2a2a]/50 rounded text-xs transition-colors flex items-center justify-between group"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      {item.icon && <span className="text-[#ffd700]">{item.icon}</span>}
+                      {item.label}
                     </span>
-                  )}
-                </Link>
-              </li>
-            ))}
+                    {item.badge && (
+                      <span className="bg-[#ffd700] text-[#0a0a0a] text-[10px] font-bold px-1.5 py-0.5 rounded">
+                        {item.badge}
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              ))}
           </ul>
         </div>
       ))}

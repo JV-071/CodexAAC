@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { api } from '../services/api'
@@ -8,6 +8,12 @@ import { authService } from '../services/auth'
 
 export default function CreateAccountPage() {
   const router = useRouter()
+  
+  useEffect(() => {
+    if (authService.isAuthenticated()) {
+      router.replace('/account')
+    }
+  }, [router])
   const [formData, setFormData] = useState({
     email: '',
     password: '',

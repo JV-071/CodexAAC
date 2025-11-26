@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
+import { authService } from '../../services/auth'
 
 interface DropdownItem {
   label: string
@@ -86,7 +87,12 @@ const navItems: NavItem[] = [
 export default function TopBar() {
   const router = useRouter()
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const dropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
+  
+  useEffect(() => {
+    setIsAuthenticated(authService.isAuthenticated())
+  }, [])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -139,20 +145,41 @@ export default function TopBar() {
                     </button>
                     {openDropdown === item.label && (
                       <div className="absolute top-full left-0 mt-2 w-48 bg-[#252525] border-2 border-[#404040]/60 rounded-lg shadow-xl z-50 overflow-hidden">
-                        {item.dropdown.map((dropdownItem) => (
+                        {item.label === 'Account' && isAuthenticated && (
                           <button
-                            key={dropdownItem.label}
                             onClick={(e) => {
                               e.preventDefault()
                               setOpenDropdown(null)
-                              router.push(dropdownItem.href)
+                              router.push('/account')
                             }}
-                            className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-[#e0e0e0] hover:bg-[#1f1f1f] hover:text-[#ffd700] transition-colors"
+                            className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-[#e0e0e0] hover:bg-[#1f1f1f] hover:text-[#ffd700] transition-colors border-b border-[#404040]/60"
                           >
-                            {dropdownItem.icon && <span>{dropdownItem.icon}</span>}
-                            <span className="text-sm">{dropdownItem.label}</span>
+                            <span>👤</span>
+                            <span className="text-sm">Account Management</span>
                           </button>
-                        ))}
+                        )}
+                        {item.dropdown
+                          .filter((dropdownItem) => {
+                            // Hide Login and Create Account when authenticated
+                            if (isAuthenticated) {
+                              return dropdownItem.label !== 'Create Account' && dropdownItem.label !== 'Login'
+                            }
+                            return true
+                          })
+                          .map((dropdownItem) => (
+                            <button
+                              key={dropdownItem.label}
+                              onClick={(e) => {
+                                e.preventDefault()
+                                setOpenDropdown(null)
+                                router.push(dropdownItem.href)
+                              }}
+                              className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-[#e0e0e0] hover:bg-[#1f1f1f] hover:text-[#ffd700] transition-colors"
+                            >
+                              {dropdownItem.icon && <span>{dropdownItem.icon}</span>}
+                              <span className="text-sm">{dropdownItem.label}</span>
+                            </button>
+                          ))}
                       </div>
                     )}
                   </>
