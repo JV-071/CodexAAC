@@ -5,17 +5,18 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { api } from '../services/api'
 import { authService } from '../services/auth'
+import { useAuth } from '../contexts/AuthContext'
 
 interface LoginResponse {
   token?: string
   requires2FA?: boolean
   message?: string
-  // Note: Token in JSON for development (different ports), httpOnly cookie in production
 }
 
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { isAuthenticated, isLoading, setAuthenticated } = useAuth()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -25,7 +26,6 @@ function LoginForm() {
   const [requires2FA, setRequires2FA] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [checkingAuth, setCheckingAuth] = useState(true)
 
   useEffect(() => {
     const expired = searchParams.get('expired')
@@ -33,22 +33,12 @@ function LoginForm() {
     
     if (expired) {
       setError('Your session has expired. Please login again.')
-      setCheckingAuth(false)
     } else if (unauthorized) {
       setError('You are not authorized. Please login again.')
-      setCheckingAuth(false)
-    } else {
-      const checkAuth = () => {
-        if (authService.isAuthenticated()) {
-          router.push('/account')
-        } else {
-          setCheckingAuth(false)
-        }
-      }
-
-      checkAuth()
+    } else if (isAuthenticated && !isLoading) {
+      router.push('/account')
     }
-  }, [searchParams, router])
+  }, [searchParams, router, isAuthenticated, isLoading])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target
@@ -76,9 +66,11 @@ function LoginForm() {
         return
       }
 
+      // Save token (dev only) and update context
       if (data.token) {
         authService.saveToken(data.token)
       }
+      setAuthenticated(true)
       router.push('/account')
     } catch (err: any) {
       setError(err.message || 'Invalid email or password. Please try again.')
@@ -91,7 +83,7 @@ function LoginForm() {
     }
   }
 
-  if (checkingAuth) {
+  if (isLoading) {
     return (
       <div>
         <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">

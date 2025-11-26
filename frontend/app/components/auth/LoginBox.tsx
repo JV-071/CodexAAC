@@ -5,35 +5,23 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { api } from '../../services/api'
 import { authService } from '../../services/auth'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface LoginResponse {
   token?: string
   requires2FA?: boolean
   message?: string
-  // Note: Token in JSON for development (different ports), httpOnly cookie in production
 }
 
 export default function LoginBox() {
   const router = useRouter()
+  const { isAuthenticated, isLoading, setAuthenticated } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [twoFactorToken, setTwoFactorToken] = useState('')
   const [requires2FA, setRequires2FA] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [checkingAuth, setCheckingAuth] = useState(true)
-
-  useEffect(() => {
-    const checkAuth = () => {
-      if (authService.isAuthenticated()) {
-        setCheckingAuth(false)
-      } else {
-        setCheckingAuth(false)
-      }
-    }
-
-    checkAuth()
-  }, [router])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,7 +41,11 @@ export default function LoginBox() {
         return
       }
 
-      authService.saveToken(data.token || '')
+      // Save token (dev only) and update context
+      if (data.token) {
+        authService.saveToken(data.token)
+      }
+      setAuthenticated(true)
       router.push('/account')
     } catch (err: any) {
       setError(err.message || 'Invalid email or password. Please try again.')
@@ -66,7 +58,7 @@ export default function LoginBox() {
     }
   }
 
-  if (checkingAuth) {
+  if (isLoading) {
     return (
       <div className="bg-[#252525]/95 backdrop-blur-sm rounded-xl border-2 border-[#505050]/70 p-4 sm:p-6 shadow-2xl ring-2 ring-[#ffd700]/10">
         <h2 className="text-[#ffd700] text-xl sm:text-2xl font-bold mb-4 sm:mb-6 pb-3 border-b border-[#404040]/40">Account Login</h2>
@@ -75,7 +67,7 @@ export default function LoginBox() {
     )
   }
 
-  if (authService.isAuthenticated()) {
+  if (isAuthenticated) {
     return (
       <div className="bg-[#252525]/95 backdrop-blur-sm rounded-xl border-2 border-[#505050]/70 p-4 sm:p-6 shadow-2xl ring-2 ring-[#ffd700]/10">
         <h2 className="text-[#ffd700] text-xl sm:text-2xl font-bold mb-4 sm:mb-6 pb-3 border-b border-[#404040]/40">Account</h2>

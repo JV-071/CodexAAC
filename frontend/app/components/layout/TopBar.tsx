@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
-import { authService } from '../../services/auth'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface DropdownItem {
   label: string
@@ -87,12 +87,8 @@ const navItems: NavItem[] = [
 export default function TopBar() {
   const router = useRouter()
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const { isAuthenticated } = useAuth()
   const dropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
-  
-  useEffect(() => {
-    setIsAuthenticated(authService.isAuthenticated())
-  }, [])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

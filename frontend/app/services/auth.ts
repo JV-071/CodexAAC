@@ -1,11 +1,7 @@
-// Centralized authentication service
-// Handles token management with httpOnly cookies (production) or localStorage (development)
-
 const TOKEN_KEY = 'token';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
-// Check if we're in development (different ports = can't use cookies)
-const isDevelopment = typeof window !== 'undefined' && 
+export const isDevelopment = typeof window !== 'undefined' && 
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
 export const authService = {
@@ -36,7 +32,7 @@ export const authService = {
       if (!token) return false;
       return !this.isTokenExpired();
     }
-    return true
+    return false
   },
 
   isTokenExpired(): boolean {
@@ -53,6 +49,22 @@ export const authService = {
       }
     }
     return false;
+  },
+
+  async checkAuthAsync(): Promise<boolean> {
+    if (isDevelopment) {
+      return this.isAuthenticated();
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/account`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      return response.ok;
+    } catch {
+      return false;
+    }
   },
 
   async logout(redirectTo: string = '/login'): Promise<void> {

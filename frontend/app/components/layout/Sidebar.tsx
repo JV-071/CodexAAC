@@ -1,10 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useServerName } from '../../hooks/useServerName'
 import { useSocialLinks } from '../../hooks/useSocialLinks'
-import { authService } from '../../services/auth'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface MenuSection {
   title: string
@@ -14,11 +14,7 @@ interface MenuSection {
 export default function Sidebar() {
   const serverName = useServerName()
   const socialLinks = useSocialLinks()
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  
-  useEffect(() => {
-    setIsAuthenticated(authService.isAuthenticated())
-  }, [])
+  const { isAuthenticated } = useAuth()
 
   const menuSections: MenuSection[] = [
     {

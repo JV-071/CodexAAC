@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useServerName } from '../../hooks/useServerName'
-import { authService } from '../../services/auth'
+import { useAuth } from '../../contexts/AuthContext'
 
 export default function HeroBanner() {
   const images = [
@@ -11,12 +11,8 @@ export default function HeroBanner() {
   ]
 
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const { isAuthenticated } = useAuth()
   const serverName = useServerName()
-  
-  useEffect(() => {
-    setIsAuthenticated(authService.isAuthenticated())
-  }, [])
 
   useEffect(() => {
     const interval = setInterval(() => {

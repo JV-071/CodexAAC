@@ -4,16 +4,17 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { api } from '../services/api'
-import { authService } from '../services/auth'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function CreateAccountPage() {
   const router = useRouter()
+  const { isAuthenticated, setAuthenticated, checkAuth } = useAuth()
   
   useEffect(() => {
-    if (authService.isAuthenticated()) {
+    if (isAuthenticated) {
       router.replace('/account')
     }
-  }, [router])
+  }, [isAuthenticated, router])
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -114,7 +115,13 @@ export default function CreateAccountPage() {
       }, { public: true })
 
       if (response.token) {
-        authService.saveToken(response.token)
+        const isDev = typeof window !== 'undefined' && 
+          (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        if (isDev) {
+          const { authService } = await import('../services/auth')
+          authService.saveToken(response.token)
+        }
+        setAuthenticated(true)
         setIsSuccess(true)
         setSuccessMessage('Account created successfully! Redirecting...')
         

@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { authService } from '../services/auth'
 import { api } from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
 import { useServerName } from '../hooks/useServerName'
 import { makeOutfit } from '../utils/outfit'
 import type { Ticket, AccountInfo, AccountApiResponse } from '../types/account'
@@ -15,6 +15,7 @@ const EMPTY_NAMELOCKS: any[] = []
 const EMPTY_REPORTS: any[] = []
 
 export default function AccountManagementPage() {
+    const { logout } = useAuth()
     const [user, setUser] = useState<AccountInfo>({
         email: '',
         accountType: 'Free Account',
@@ -80,7 +81,7 @@ export default function AccountManagementPage() {
     }, [fetchAccountInfo, fetchCharacters])
 
     const handleLogout = useCallback(() => {
-        authService.logout('/login')
+        logout()
     }, [])
 
     return (

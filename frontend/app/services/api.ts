@@ -1,10 +1,11 @@
-import { authService } from './auth';
+import { authService, isDevelopment } from './auth';
+import { authStateManager } from '../contexts/AuthContext';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
 interface RequestOptions extends RequestInit {
     headers?: Record<string, string>;
-    public?: boolean; // Flag to indicate public endpoint (no auth required)
+    public?: boolean;
 }
 
 class ApiService {
@@ -16,8 +17,6 @@ class ApiService {
             ...options.headers,
         };
 
-        const isDevelopment = typeof window !== 'undefined' && 
-          (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
         if (!isPublic && isDevelopment) {
           if (authService.isTokenExpired() && authService.isAuthenticated()) {
@@ -64,6 +63,7 @@ class ApiService {
             }
             
             if (response.status === 401 && !isPublic) {
+                authStateManager.notifyUnauthorized()
                 if (typeof window !== 'undefined') {
                     if (window.location.pathname !== '/login') {
                         window.location.href = '/login?unauthorized=true';
