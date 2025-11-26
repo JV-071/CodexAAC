@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { api } from '../../services/api'
-import { makeOutfit } from '../../utils/outfit'
 import { formatDateTime } from '../../utils/date'
+import CharacterDetailsSection from '../../components/character/CharacterDetails'
 import type { JSX } from 'react'
 import type { CharacterDetails, Death, CharacterDetailsResponse } from '../../types/character'
 
@@ -19,28 +19,28 @@ export default function CharacterDetailsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    const fetchCharacterDetails = async () => {
-      try {
-        setLoading(true)
-        setError('')
-        const response = await api.get<{ data: CharacterDetailsResponse }>(`/characters/${characterName}`, { public: true })
-        setCharacter(response.data.character)
-        setDeaths(response.data.deaths || [])
-      } catch (err: any) {
-        setError(err.message || 'Character not found')
-      } finally {
-        setLoading(false)
-      }
-    }
+  const fetchCharacterDetails = useCallback(async () => {
+    if (!characterName) return
 
-    if (characterName) {
-      fetchCharacterDetails()
+    try {
+      setLoading(true)
+      setError('')
+      const response = await api.get<{ data: CharacterDetailsResponse }>(`/characters/${characterName}`, { public: true })
+      setCharacter(response.data.character)
+      setDeaths(response.data.deaths || [])
+    } catch (err: any) {
+      setError(err.message || 'Character not found')
+    } finally {
+      setLoading(false)
     }
   }, [characterName])
 
+  useEffect(() => {
+    fetchCharacterDetails()
+  }, [fetchCharacterDetails])
 
-  const formatDeathDescription = (death: Death): JSX.Element => {
+
+  const formatDeathDescription = useCallback((death: Death): JSX.Element => {
     const parts: string[] = []
     const segments = death.killedBy.split(', ')
     
@@ -82,7 +82,7 @@ export default function CharacterDetailsPage() {
         })}
       </span>
     )
-  }
+  }, [])
 
   if (loading) {
     return (
@@ -140,24 +140,7 @@ export default function CharacterDetailsPage() {
             <h2 className="text-[#ffd700] text-xl sm:text-2xl font-bold mb-6 pb-3 border-b border-[#404040]/40">
               Character Information
             </h2>
-            <div className="flex flex-col lg:flex-row gap-6">
-              {character && (
-                <div className="flex-shrink-0 flex justify-center items-center bg-[#1a1a1a] rounded-lg p-4 border-2 border-[#404040]/60 w-40 h-40 sm:w-48 sm:h-48">
-                  <img
-                    src={makeOutfit({
-                      id: character.lookType,
-                      addons: character.lookAddons,
-                      head: character.lookHead,
-                      body: character.lookBody,
-                      legs: character.lookLegs,
-                      feet: character.lookFeet,
-                    })}
-                    alt={`${character.name} outfit`}
-                    className="max-w-full max-h-full object-contain"
-                  />
-                </div>
-              )}
-              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <span className="text-[#888] text-sm">Name:</span>
                 <p className="text-[#e0e0e0] font-medium">{character.name}</p>
@@ -206,9 +189,13 @@ export default function CharacterDetailsPage() {
                 <span className="text-[#888] text-sm">Created:</span>
                 <p className="text-[#e0e0e0] font-medium">{formatDateTime(character.created)}</p>
               </div>
-              </div>
             </div>
           </div>
+
+          {/* Character Details */}
+          {character && (
+            <CharacterDetailsSection character={character} />
+          )}
 
           {/* Deaths */}
           {deaths.length > 0 && (
