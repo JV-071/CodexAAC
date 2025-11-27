@@ -83,10 +83,14 @@ func GetCharacterCreationConfig() *CharacterCreationConfig {
 }
 
 var VocationMapping = map[string]int{
-	"sorcerer": 1,
-	"druid":    2,
-	"paladin":  3,
-	"knight":   4,
+	"sorcerer":       1,
+	"druid":          2,
+	"paladin":        3,
+	"knight":         4,
+	"mastersorcerer": 5,
+	"elderdruid":     6,
+	"royalpaladin":   7,
+	"eliteknight":   8,
 }
 
 var SexMapping = map[string]int{
@@ -103,7 +107,8 @@ var LookTypeMapping = map[int]int{
 }
 
 func init() {
-	VocationReverseMapping = make(map[int]string, len(VocationMapping))
+	VocationReverseMapping = make(map[int]string, 8)
+	
 	for name, id := range VocationMapping {
 		if len(name) == 0 {
 			continue
@@ -115,6 +120,12 @@ func init() {
 		}
 		VocationReverseMapping[id] = string(runes)
 	}
+	
+	// Override promoted vocations with proper names (spaces and capitalization)
+	VocationReverseMapping[5] = "Master Sorcerer"
+	VocationReverseMapping[6] = "Elder Druid"
+	VocationReverseMapping[7] = "Royal Paladin"
+	VocationReverseMapping[8] = "Elite Knight"
 
 	SexReverseMapping = make(map[int]string, len(SexMapping))
 	for name, id := range SexMapping {
