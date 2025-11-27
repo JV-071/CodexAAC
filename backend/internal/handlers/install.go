@@ -114,6 +114,7 @@ func AddRequiredModelsToSchema(schemaPath string) error {
 	scanner := bufio.NewScanner(file)
 	hasMaintenance := false
 	hasChangelogs := false
+	hasSitePages := false
 	var lines []string
 	// Pre-allocate with reasonable capacity to reduce allocations
 	lines = make([]string, 0, 1000)
@@ -129,14 +130,17 @@ func AddRequiredModelsToSchema(schemaPath string) error {
 		if !hasChangelogs && strings.Contains(line, "model changelogs") {
 			hasChangelogs = true
 		}
+		if !hasSitePages && strings.Contains(line, "model site_pages") {
+			hasSitePages = true
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
 		return fmt.Errorf("error reading schema file: %w", err)
 	}
 
-	// If both models exist, nothing to do
-	if hasMaintenance && hasChangelogs {
+	// If all models exist, nothing to do
+	if hasMaintenance && hasChangelogs && hasSitePages {
 		return nil
 	}
 
@@ -169,6 +173,18 @@ model changelogs {
 }
 `
 
+sitePagesModel := `
+model site_pages {
+	id         Int      @id @default(autoincrement())
+	page_key   String   @unique @db.VarChar(50)
+	content    String?  @db.Text
+	created_at DateTime @default(now()) @db.Timestamp(0)
+	updated_at DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+	@@map("site_pages")
+}
+`
+
 	// Write back with added models
 	file, err = os.Create(schemaPath)
 	if err != nil {
@@ -195,6 +211,12 @@ model changelogs {
 	if !hasChangelogs {
 		if _, err := writer.WriteString(changelogsModel); err != nil {
 			return fmt.Errorf("error writing changelogs model: %w", err)
+		}
+
+		if !hasSitePages {
+			if _, err := writer.WriteString(sitePagesModel); err != nil {
+				return fmt.Errorf("error writing site_pages model: %w", err)
+			}
 		}
 	}
 
@@ -381,6 +403,19 @@ func ApplySchema(ctx context.Context) map[string]string {
 		if err != nil {
 			results["accounts."+columnName] = "Error checking: " + err.Error()
 			continue
+		}
+
+		// 4. Create site_pages table if missing
+		if err := CreateTableIfNotExists(ctx, "site_pages", `
+			CREATE TABLE IF NOT EXISTS site_pages (
+				id INT AUTO_INCREMENT PRIMARY KEY,
+				page_key VARCHAR(50) NOT NULL UNIQUE,
+				content TEXT NULL,
+				created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+		`, `INSERT IGNORE INTO site_pages (page_key, content) VALUES ('rules', '')`, &results); err != nil {
+			results["site_pages"] = "Error: " + err.Error()
 		}
 
 		if exists {

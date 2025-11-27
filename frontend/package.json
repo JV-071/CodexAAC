@@ -9,6 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@tiptap/extension-color": "^3.11.0",
+    "@tiptap/extension-placeholder": "^3.11.0",
+    "@tiptap/extension-text-style": "^3.11.0",
+    "@tiptap/extension-underline": "^3.11.0",
+    "@tiptap/react": "^3.11.0",
+    "@tiptap/starter-kit": "^3.11.0",
     "next": "^16.0.3",
     "next-intl": "^4.5.5",
     "react": "^19.2.0",
