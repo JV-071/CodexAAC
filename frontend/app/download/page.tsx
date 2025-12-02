@@ -3,6 +3,9 @@
 import Link from 'next/link'
 import { useServerName } from '../hooks/useServerName'
 
+const CLIENT_VERSION = process.env.NEXT_PUBLIC_CLIENT_VERSION ?? '1.0.0'
+const CLIENT_URL = process.env.NEXT_PUBLIC_CLIENT_DOWNLOAD_URL ?? '#'
+
 export default function DownloadPage() {
   const serverName = useServerName()
   return (
@@ -31,13 +34,13 @@ export default function DownloadPage() {
                 <span className="text-[#ffd700]">Official {serverName}</span>
                 <span className="text-[#3b82f6]"> Client</span>
               </h2>
-              <p className="text-[#888] text-sm">Version 1.0.0</p>
+              <p className="text-[#888] text-sm">Version {CLIENT_VERSION}</p>
             </div>
 
             {/* Download Button */}
             <div className="text-center mb-8">
               <a
-                href="#"
+                href={CLIENT_URL}
                 className="inline-flex items-center justify-center gap-3 bg-gradient-to-r from-[#3b82f6] to-[#2563eb] hover:from-[#2563eb] hover:to-[#1d4ed8] text-white font-bold py-4 px-8 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105 text-lg"
               >
                 <span className="text-2xl">⬇️</span>
@@ -114,4 +117,3 @@ export default function DownloadPage() {
     </div>
   )
 }
-
