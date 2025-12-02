@@ -81,6 +81,7 @@ const navItems: NavItem[] = [
       { label: 'Guilds', href: '/guilds', icon: '🛡️' },
       { label: 'Houses', href: '/community/houses', icon: '🏠' },
       { label: 'Latest Deaths', href: '/community/deaths', icon: '💀' },
+      { label: 'Banishments', href: '/community/banishments', icon: '🚫' },
     ],
   },
 ]
