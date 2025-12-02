@@ -1,0 +1,38 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = tab
+indent_size = tab       # garante 1 tab, nunca espaços
+insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = off
+
+[*.{ts,tsx,js,jsx}]
+indent_style = tab
+indent_size = tab
+
+[*.{css,scss,html}]
+indent_style = tab
+indent_size = tab
+
+[*.go]
+indent_style = tab
+indent_size = tab
+
+[Makefile]
+indent_style = tab
+
+# JSON / YAML mantêm espaços
+[*.{json,yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Markdown não remove espaços no final
+[*.md]
+trim_trailing_whitespace = false
+
+# Arquivos minificados ignoram formatação
+[*.min.*]
+indent_style = ignore
