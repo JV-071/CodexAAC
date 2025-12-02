@@ -95,7 +95,8 @@ export default function RankingPage() {
 
   const getValueLabel = () => {
     const typeMap: Record<RankingType, string> = {
-      level: 'Level',
+      level: 'Experience Points',
+      experience: 'Experience',
       magiclevel: 'ML',
       club: 'Club',
       axe: 'Axe',
@@ -137,11 +138,10 @@ export default function RankingPage() {
                   <button
                     key={item.type}
                     onClick={() => handleTypeChange(item.type)}
-                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                      rankingType === item.type
-                        ? 'bg-[#ffd700] text-[#0a0a0a] shadow-lg'
-                        : 'bg-[#1a1a1a] text-[#e0e0e0] hover:bg-[#2a2a2a]'
-                    }`}
+                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${rankingType === item.type
+                      ? 'bg-[#ffd700] text-[#0a0a0a] shadow-lg'
+                      : 'bg-[#1a1a1a] text-[#e0e0e0] hover:bg-[#2a2a2a]'
+                      }`}
                   >
                     <span className="mr-2">{item.icon}</span>
                     {item.label}
@@ -196,13 +196,11 @@ export default function RankingPage() {
                 <table className="w-full">
                   <thead className="bg-[#1a1a1a] border-b-2 border-[#404040]">
                     <tr>
-                      <th className="px-6 py-4 text-left text-[#ffd700] font-bold text-sm uppercase tracking-wide">#</th>
-                      <th className="px-6 py-4 text-left text-[#ffd700] font-bold text-sm uppercase tracking-wide">Player</th>
-                      <th className="px-6 py-4 text-left text-[#ffd700] font-bold text-sm uppercase tracking-wide">Vocation</th>
-                      {rankingType === 'level' && (
-                        <th className="px-6 py-4 text-right text-[#ffd700] font-bold text-sm uppercase tracking-wide">Level</th>
-                      )}
-                      <th className="px-6 py-4 text-right text-[#ffd700] font-bold text-sm uppercase tracking-wide">{getValueLabel()}</th>
+                      <th className="px-6 py-4 w-24 text-left text-[#ffd700] font-bold text-sm uppercase tracking-wide">Ranking</th>
+                      <th className="px-6 py-4 w-64 text-left text-[#ffd700] font-bold text-sm uppercase tracking-wide">Player</th>
+                      <th className="px-6 py-4 w-40 text-left text-[#ffd700] font-bold text-sm uppercase tracking-wide">Vocation</th>
+                      <th className="px-6 py-4 w-24 text-right text-[#ffd700] font-bold text-sm uppercase tracking-wide">Level</th>
+                      <th className="px-6 py-4 w-40 text-right text-[#ffd700] font-bold text-sm uppercase tracking-wide">{getValueLabel()}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -211,19 +209,18 @@ export default function RankingPage() {
                         key={`${player.name}-${index}`}
                         className="border-b border-[#404040]/30 hover:bg-[#1a1a1a]/50 transition-colors"
                       >
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 w-24">
                           <div className="flex items-center gap-3">
-                            <span className={`text-lg font-bold ${
-                              player.rank === 1 ? 'text-[#ffd700]' :
+                            <span className={`text-lg font-bold ${player.rank === 1 ? 'text-[#ffd700]' :
                               player.rank === 2 ? 'text-[#c0c0c0]' :
-                              player.rank === 3 ? 'text-[#cd7f32]' :
-                              'text-[#888]'
-                            }`}>
+                                player.rank === 3 ? 'text-[#cd7f32]' :
+                                  'text-[#888]'
+                              }`}>
                               {player.rank === 1 ? '🥇' : player.rank === 2 ? '🥈' : player.rank === 3 ? '🥉' : player.rank}
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 w-64">
                           <Link
                             href={`/characters/${player.name}`}
                             className="flex items-center gap-3 hover:text-[#ffd700] transition-colors group"
@@ -255,15 +252,13 @@ export default function RankingPage() {
                             </span>
                           </Link>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 w-40">
                           <span className="text-[#e0e0e0]">{player.vocation}</span>
                         </td>
-                        {rankingType === 'level' && (
-                          <td className="px-6 py-4 text-right">
-                            <span className="text-[#e0e0e0] font-semibold">{player.level}</span>
-                          </td>
-                        )}
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-6 py-4 w-24 text-right">
+                          <span className="text-[#e0e0e0] font-semibold">{player.level}</span>
+                        </td>
+                        <td className="px-6 py-4 w-40 text-right">
                           <span className="text-[#ffd700] font-bold">{player.value}</span>
                         </td>
                       </tr>
@@ -304,4 +299,3 @@ export default function RankingPage() {
     </div>
   )
 }
-

@@ -79,8 +79,11 @@ func GetRankingHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch rankingType {
 	case "level":
-		valueField = "p.level"
+		valueField = "p.experience"
 		orderBy = "p.level DESC"
+	case "experience":
+		valueField = "p.experience"
+		orderBy = "p.experience DESC, p.level DESC"
 	case "magiclevel":
 		valueField = "p.maglevel"
 		orderBy = "p.maglevel DESC, p.level DESC"
@@ -228,4 +231,3 @@ func GetRankingHandler(w http.ResponseWriter, r *http.Request) {
 
 	utils.WriteSuccess(w, http.StatusOK, "Ranking retrieved successfully", response)
 }
-

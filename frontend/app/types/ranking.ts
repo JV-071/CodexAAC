@@ -15,15 +15,13 @@ export interface RankingResponse {
   players: RankingPlayer[]
 }
 
-export type RankingType = 
-  | 'level' 
-  | 'magiclevel' 
-  | 'club' 
-  | 'axe' 
-  | 'sword' 
-  | 'shielding' 
-  | 'distance' 
-  | 'fist' 
+export type RankingType =
+  | 'level'
+  | 'magiclevel'
+  | 'club'
+  | 'axe'
+  | 'sword'
+  | 'shielding'
+  | 'distance'
+  | 'fist'
   | 'fishing'
-
-
