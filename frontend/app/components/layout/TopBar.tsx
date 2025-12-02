@@ -97,9 +97,9 @@ export default function TopBar() {
   }
 
   return (
-    <div className="relative z-20" data-topbar>
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
-        <div className="bg-[#252525]/95 backdrop-blur-md border-2 border-[#404040]/60 rounded-lg shadow-xl">
+    <div className="fixed top-0 left-0 w-full z-50" data-topbar>
+      <div className="w-full">
+        <div className="bg-[#252525]/95 backdrop-blur-md border-b-2 border-[#404040]/60 shadow-xl">
           <nav className="flex items-center justify-center gap-4 sm:gap-6 lg:gap-8 py-3 flex-wrap">
             {navItems.map((item) => (
               <div

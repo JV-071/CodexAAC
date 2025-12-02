@@ -15,7 +15,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body className="min-h-screen bg-[#1a1a1a]">
+      <body className="min-h-screen bg-[#1a1a1a] pt-[85px]">
         {/* Background with illustration */}
         <div className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat bg-background-image"></div>
         <div className="fixed inset-0 z-0 bg-gradient-overlay opacity-60"></div>
@@ -30,4 +30,3 @@ export default function RootLayout({
     </html>
   )
 }
-
