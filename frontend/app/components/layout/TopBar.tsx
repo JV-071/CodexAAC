@@ -38,9 +38,7 @@ const navItems: NavItem[] = [
     icon: '📚',
     dropdown: [
       { label: 'Wiki', href: '/resources/wiki', icon: '📖' },
-      { label: 'Guides', href: '/resources/guides', icon: '📝' },
-      { label: 'Tools', href: '/resources/tools', icon: '🔧' },
-      { label: 'Downloads', href: '/resources/downloads', icon: '⬇️' },
+      { label: 'Downloads', href: '/download', icon: '⬇️' },
     ],
   },
   {
