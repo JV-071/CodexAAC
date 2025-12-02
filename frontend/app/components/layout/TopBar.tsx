@@ -25,23 +25,6 @@ const navItems: NavItem[] = [
     icon: '🏠',
   },
   {
-    label: 'Contribute',
-    icon: '💡',
-    dropdown: [
-      { label: 'Donate', href: '/contribute/donate', icon: '💰' },
-      { label: 'Report Bug', href: '/contribute/bug', icon: '🐛' },
-      { label: 'Suggest Feature', href: '/contribute/suggest', icon: '💭' },
-    ],
-  },
-  {
-    label: 'Resources',
-    icon: '📚',
-    dropdown: [
-      { label: 'Wiki', href: '/resources/wiki', icon: '📖' },
-      { label: 'Downloads', href: '/download', icon: '⬇️' },
-    ],
-  },
-  {
     label: 'Account',
     icon: '👤',
     dropdown: [
@@ -49,24 +32,22 @@ const navItems: NavItem[] = [
       { label: 'Create Account', href: '/create-account', icon: '✨' },
       { label: 'Recover Account', href: '/account/recover', icon: '🔑' },
       { label: 'Download Client', href: '/download', icon: '⬇️' },
+      { label: 'Donate', href: '/contribute/donate', icon: '💰' },
     ],
   },
   {
     label: 'Information',
     icon: 'ℹ️',
     dropdown: [
-      { label: 'About', href: '/information/about', icon: '📋' },
       { label: 'Server Info', href: '/server-info', icon: '🖥️' },
       { label: 'Rules', href: '/information/rules', icon: '📜' },
-      { label: 'FAQ', href: '/information/faq', icon: '❓' },
     ],
   },
   {
     label: 'Support',
     icon: '🆘',
     dropdown: [
-      { label: 'Help Center', href: '/support/help', icon: '💬' },
-      { label: 'Contact', href: '/support/contact', icon: '📧' },
+      { label: 'Team', href: '/support/team', icon: '💬' },
       { label: 'Ticket System', href: '/support/tickets', icon: '🎫' },
     ],
   },
@@ -75,7 +56,7 @@ const navItems: NavItem[] = [
     icon: '👥',
     dropdown: [
       { label: 'Online Players', href: '/players-online', icon: '👤' },
-      { label: 'Ranking', href: '/community/ranking', icon: '🏆' },
+      { label: 'Highscores', href: '/community/ranking', icon: '🏆' },
       { label: 'Guilds', href: '/guilds', icon: '🛡️' },
       { label: 'Houses', href: '/community/houses', icon: '🏠' },
       { label: 'Latest Deaths', href: '/community/deaths', icon: '💀' },
