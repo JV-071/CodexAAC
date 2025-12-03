@@ -126,7 +126,7 @@ func GetRankingHandler(w http.ResponseWriter, r *http.Request) {
 			COALESCE(p.lookaddons, 0) as lookaddons,
 			` + valueField + ` as value
 		FROM players p
-		WHERE p.deletion = 0
+		WHERE p.deletion = 0 AND p.group_id < 4
 	`
 
 	args := make([]interface{}, 0, 4)
@@ -187,7 +187,7 @@ func GetRankingHandler(w http.ResponseWriter, r *http.Request) {
 	countQuery := `
 		SELECT COUNT(*)
 		FROM players p
-		WHERE p.deletion = 0
+		WHERE p.deletion = 0 AND p.group_id < 4
 	`
 	countArgs := make([]interface{}, 0, 2)
 
