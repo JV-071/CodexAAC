@@ -115,6 +115,8 @@ func AddRequiredModelsToSchema(schemaPath string) error {
 	hasMaintenance := false
 	hasChangelogs := false
 	hasSitePages := false
+	hasNews := false
+	hasNewsComments := false
 	var lines []string
 	// Pre-allocate with reasonable capacity to reduce allocations
 	lines = make([]string, 0, 1000)
@@ -133,6 +135,12 @@ func AddRequiredModelsToSchema(schemaPath string) error {
 		if !hasSitePages && strings.Contains(line, "model site_pages") {
 			hasSitePages = true
 		}
+		if !hasNews && strings.Contains(line, "model news") {
+			hasNews = true
+		}
+		if !hasNewsComments && strings.Contains(line, "model news_comments") {
+			hasNewsComments = true
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -140,7 +148,7 @@ func AddRequiredModelsToSchema(schemaPath string) error {
 	}
 
 	// If all models exist, nothing to do
-	if hasMaintenance && hasChangelogs && hasSitePages {
+	if hasMaintenance && hasChangelogs && hasSitePages && hasNews && hasNewsComments {
 		return nil
 	}
 
@@ -185,6 +193,36 @@ model site_pages {
 }
 `
 
+	newsModel := `
+model news {
+	id          Int      @id @default(autoincrement())
+	title       String   @db.VarChar(255)
+	content     String   @db.Text
+	author_id   Int      @db.UnsignedInt
+	character_id Int?    @db.UnsignedInt
+	icon        String?  @default("📰") @db.VarChar(10)
+	created_at  DateTime @default(now()) @db.Timestamp(0)
+	updated_at  DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+	@@index([created_at], map: "idx_created_at")
+	@@index([character_id], map: "idx_character_id")
+	@@map("news")
+}
+
+model news_comments {
+	id          Int      @id @default(autoincrement())
+	news_id     Int      @db.UnsignedInt
+	author_id   Int      @db.UnsignedInt
+	character_id Int     @db.UnsignedInt
+	content     String   @db.Text
+	created_at  DateTime @default(now()) @db.Timestamp(0)
+
+	@@index([news_id], map: "idx_news_id")
+	@@index([created_at], map: "idx_created_at")
+	@@map("news_comments")
+}
+`
+
 	// Write back with added models
 	file, err = os.Create(schemaPath)
 	if err != nil {
@@ -212,12 +250,23 @@ model site_pages {
 		if _, err := writer.WriteString(changelogsModel); err != nil {
 			return fmt.Errorf("error writing changelogs model: %w", err)
 		}
+	}
 
-		if !hasSitePages {
-			if _, err := writer.WriteString(sitePagesModel); err != nil {
-				return fmt.Errorf("error writing site_pages model: %w", err)
-			}
+	if !hasSitePages {
+		if _, err := writer.WriteString(sitePagesModel); err != nil {
+			return fmt.Errorf("error writing site_pages model: %w", err)
 		}
+	}
+
+	if !hasNews {
+		if _, err := writer.WriteString(newsModel); err != nil {
+			return fmt.Errorf("error writing news model: %w", err)
+		}
+	}
+
+	if !hasNewsComments {
+		// news_comments is included in newsModel above
+		// This check is just for consistency
 	}
 
 	if err := writer.Flush(); err != nil {
@@ -406,17 +455,84 @@ func ApplySchema(ctx context.Context) map[string]string {
 		}
 
 		// 4. Create site_pages table if missing
-		if err := CreateTableIfNotExists(ctx, "site_pages", `
-			CREATE TABLE IF NOT EXISTS site_pages (
-				id INT AUTO_INCREMENT PRIMARY KEY,
-				page_key VARCHAR(50) NOT NULL UNIQUE,
-				content TEXT NULL,
-				created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-		`, `INSERT IGNORE INTO site_pages (page_key, content) VALUES ('rules', '')`, &results); err != nil {
-			results["site_pages"] = "Error: " + err.Error()
+	if err := CreateTableIfNotExists(ctx, "site_pages", `
+		CREATE TABLE IF NOT EXISTS site_pages (
+			id INT AUTO_INCREMENT PRIMARY KEY,
+			page_key VARCHAR(50) NOT NULL UNIQUE,
+			content TEXT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+	`, `INSERT IGNORE INTO site_pages (page_key, content) VALUES ('rules', '')`, &results); err != nil {
+		results["site_pages"] = "Error: " + err.Error()
+	}
+
+	// 5. Check and add news table if missing
+	if err := CreateTableIfNotExists(ctx, "news", `
+		CREATE TABLE IF NOT EXISTS news (
+			id INT AUTO_INCREMENT PRIMARY KEY,
+			title VARCHAR(255) NOT NULL,
+			content TEXT NOT NULL,
+			author_id INT UNSIGNED NOT NULL,
+			character_id INT UNSIGNED NULL,
+			icon VARCHAR(10) NULL DEFAULT '📰',
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			INDEX idx_created_at (created_at),
+			INDEX idx_character_id (character_id)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+	`, "", &results); err != nil {
+		results["news"] = "Error: " + err.Error()
+	}
+
+	// 5.1. Add icon column to news if it doesn't exist
+	var iconExists bool
+	err = database.DB.QueryRowContext(ctx,
+		"SELECT COUNT(*) > 0 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'news' AND column_name = 'icon'",
+	).Scan(&iconExists)
+	if err == nil && !iconExists {
+		_, err = database.DB.ExecContext(ctx, "ALTER TABLE news ADD COLUMN icon VARCHAR(10) NULL DEFAULT '📰' AFTER character_id")
+		if err != nil {
+			results["news.icon"] = "Error adding: " + err.Error()
+		} else {
+			results["news.icon"] = "added"
 		}
+	} else if iconExists {
+		results["news.icon"] = "already exists"
+	}
+
+	// 6. Add character_id column to news if it doesn't exist
+	var characterIdExists bool
+	err = database.DB.QueryRowContext(ctx,
+		"SELECT COUNT(*) > 0 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'news' AND column_name = 'character_id'",
+	).Scan(&characterIdExists)
+	if err == nil && !characterIdExists {
+		_, err = database.DB.ExecContext(ctx, "ALTER TABLE news ADD COLUMN character_id INT UNSIGNED NULL AFTER author_id, ADD INDEX idx_character_id (character_id)")
+		if err != nil {
+			results["news.character_id"] = "Error adding: " + err.Error()
+		} else {
+			results["news.character_id"] = "added"
+		}
+	} else if characterIdExists {
+		results["news.character_id"] = "already exists"
+	}
+
+	// 7. Check and add news_comments table if missing
+	if err := CreateTableIfNotExists(ctx, "news_comments", `
+		CREATE TABLE IF NOT EXISTS news_comments (
+			id INT AUTO_INCREMENT PRIMARY KEY,
+			news_id INT NOT NULL,
+			author_id INT UNSIGNED NOT NULL,
+			character_id INT UNSIGNED NOT NULL,
+			content TEXT NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			INDEX idx_news_id (news_id),
+			INDEX idx_created_at (created_at),
+			FOREIGN KEY (news_id) REFERENCES news(id) ON DELETE CASCADE
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+	`, "", &results); err != nil {
+		results["news_comments"] = "Error: " + err.Error()
+	}
 
 		if exists {
 			results["accounts."+columnName] = "already exists"

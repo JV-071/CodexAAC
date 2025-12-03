@@ -60,6 +60,7 @@ const adminNavItems: NavItem[] = [
 		icon: '📄',
 		dropdown: [
 			{ label: 'Edit Server Rules', href: '/admin/rules', icon: '📜' },
+			{ label: 'Manage News', href: '/admin/news', icon: '📰' },
 		],
 	},
 	{

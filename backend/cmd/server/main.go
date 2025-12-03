@@ -79,11 +79,16 @@ func main() {
 	r.HandleFunc("/api/maintenance/status", handlers.GetMaintenanceStatusPublicHandler).Methods("GET")
 
 	r.HandleFunc("/api/pages/rules", handlers.GetRulesHandler).Methods("GET")
+	r.HandleFunc("/api/news", handlers.GetNewsHandler).Methods("GET")
+	r.HandleFunc("/api/news/{id}/comments", handlers.GetNewsCommentsHandler).Methods("GET")
 
 	r.HandleFunc("/login", handlers.TibiaClientLoginHandler).Methods("POST", "OPTIONS")
 
 	protected := r.PathPrefix("/api").Subrouter()
 	protected.Use(middleware.AuthMiddleware)
+
+	protected.HandleFunc("/news/{id}/comments", handlers.CreateNewsCommentHandler).Methods("POST")
+	protected.HandleFunc("/news/comments/{id}", handlers.DeleteNewsCommentHandler).Methods("DELETE")
 
 	protected.HandleFunc("/account", handlers.GetAccountHandler).Methods("GET")
 	protected.HandleFunc("/account", handlers.DeleteAccountHandler).Methods("DELETE")
@@ -136,6 +141,14 @@ func main() {
 	admin.HandleFunc("/changelogs", handlers.CreateChangelogHandler).Methods("POST")
 	admin.HandleFunc("/changelogs/{id}", handlers.DeleteChangelogHandler).Methods("DELETE")
 	admin.HandleFunc("/pages/rules", handlers.UpdateRulesHandler).Methods("PUT")
+	admin.HandleFunc("/news", handlers.CreateNewsHandler).Methods("POST")
+	admin.HandleFunc("/news", handlers.GetNewsHandler).Methods("GET")
+	admin.HandleFunc("/news/{id}", handlers.GetNewsDetailsHandler).Methods("GET")
+	admin.HandleFunc("/news/{id}", handlers.UpdateNewsHandler).Methods("PUT")
+	admin.HandleFunc("/news/{id}", handlers.DeleteNewsHandler).Methods("DELETE")
+	admin.HandleFunc("/news/{id}/comments", handlers.GetNewsCommentsHandler).Methods("GET")
+	admin.HandleFunc("/news/{id}/comments", handlers.CreateNewsCommentHandler).Methods("POST")
+	admin.HandleFunc("/news/comments/{id}", handlers.DeleteNewsCommentHandler).Methods("DELETE")
 	admin.HandleFunc("/logs", handlers.GetLogsListHandler).Methods("GET")
 	admin.HandleFunc("/logs/content", handlers.GetLogContentHandler).Methods("GET")
 
