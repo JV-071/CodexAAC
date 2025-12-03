@@ -137,7 +137,7 @@ export default function TopBar() {
                         {item.dropdown
                           .filter((dropdownItem) => {
                             if (isAuthenticated) {
-                              return dropdownItem.label !== 'Create Account' && dropdownItem.label !== 'Login'
+                              return dropdownItem.label !== 'Create Account' && dropdownItem.label !== 'Login' && dropdownItem.label !== 'Recover Account'
                             }
                             return true
                           })

@@ -1,20 +1,50 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '../../contexts/AuthContext'
 
 type RecoveryMethod = 'character' | 'username' | 'neither'
 
 export default function RecoverAccountPage() {
   const router = useRouter()
+  const { isAuthenticated, isLoading } = useAuth()
   const [selectedMethod, setSelectedMethod] = useState<RecoveryMethod | null>(null)
+
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      router.push('/account')
+    }
+  }, [isAuthenticated, isLoading, router])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (selectedMethod) {
       router.push(`/account/recover/${selectedMethod}`)
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div>
+        <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl sm:text-4xl font-bold mb-2">
+                <span className="text-[#ffd700]">Recover</span>
+                <span className="text-[#3b82f6]"> Account</span>
+              </h1>
+              <p className="text-[#d0d0d0] text-sm">Checking authentication...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  if (isAuthenticated) {
+    return null
   }
 
   return (
@@ -33,7 +63,7 @@ export default function RecoverAccountPage() {
             {/* Info Box */}
             <div className="bg-[#252525]/95 backdrop-blur-sm rounded-xl border-2 border-[#505050]/70 p-6 sm:p-8 shadow-2xl ring-2 ring-[#ffd700]/10 mb-6">
               <p className="text-[#d0d0d0] text-sm leading-relaxed mb-4">
-                The account recovery interface can help you recover your account. Select the desired option and click "Submit". 
+                The account recovery interface can help you recover your account. Select the desired option and click "Submit".
                 If your problem is not listed here, you can find the answer by opening a ticket on our website.
               </p>
             </div>

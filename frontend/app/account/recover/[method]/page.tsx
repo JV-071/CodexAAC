@@ -1,15 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
+import { useAuth } from '../../../contexts/AuthContext'
 
 type RecoveryMethod = 'character' | 'username' | 'neither'
 
 export default function RecoverAccountFormPage() {
   const params = useParams()
   const router = useRouter()
+  const { isAuthenticated, isLoading } = useAuth()
   const method = params.method as RecoveryMethod
+
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      router.push('/account')
+    }
+  }, [isAuthenticated, isLoading, router])
 
   const [formData, setFormData] = useState({
     email: '',
@@ -66,7 +74,7 @@ export default function RecoverAccountFormPage() {
 
     try {
       await new Promise(resolve => setTimeout(resolve, 1500))
-      
+
       setSuccess(true)
       setFormData({
         email: '',
@@ -104,6 +112,27 @@ export default function RecoverAccountFormPage() {
       default:
         return 'Recover your account'
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div>
+        <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl sm:text-4xl font-bold mb-2">
+                <span className="text-[#ffd700]">Recover Account</span>
+              </h1>
+              <p className="text-[#d0d0d0] text-sm">Checking authentication...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  if (isAuthenticated) {
+    return null
   }
 
   if (!['character', 'username', 'neither'].includes(method)) {
@@ -200,7 +229,7 @@ export default function RecoverAccountFormPage() {
                 {method === 'neither' && (
                   <div className="bg-[#1a1a1a]/90 rounded-lg border-2 border-[#404040]/60 p-4">
                     <p className="text-[#d0d0d0] text-sm leading-relaxed">
-                      We will send recovery instructions to your email address. Please provide as much information as possible 
+                      We will send recovery instructions to your email address. Please provide as much information as possible
                       to help us verify your account ownership. Our support team will review your request and contact you via email.
                     </p>
                   </div>
