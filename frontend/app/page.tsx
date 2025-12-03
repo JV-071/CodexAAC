@@ -3,6 +3,7 @@ import SocialBar from './components/layout/SocialBar'
 import ChangeLogs from './components/news/ChangeLogs'
 import NewsSection from './components/news/NewsSection'
 import LoginBox from './components/auth/LoginBox'
+import TopPlayersHighscore from './components/layout/TopPlayersHighscore'
 import CharacterSearch from './components/layout/CharacterSearch'
 
 export default function Home() {
@@ -23,9 +24,10 @@ export default function Home() {
             <NewsSection />
           </div>
 
-          {/* Right Column - Login and Character Search */}
+          {/* Right Column - Login, Top Players and Character Search */}
           <div className="lg:col-span-1 space-y-6">
             <LoginBox />
+            <TopPlayersHighscore />
             <CharacterSearch />
           </div>
         </div>
