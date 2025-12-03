@@ -352,35 +352,38 @@ export default function AccountManagementPage() {
 							</div>
 						</div>
 
-						{/* Account Bonuses */}
-						<div className="bg-[#252525]/95 backdrop-blur-sm rounded-xl border-2 border-[#505050]/70 p-6 shadow-2xl">
-							<h3 className="text-xl font-bold text-[#ffd700] mb-4">Active Bonuses</h3>
+						{/* Support Server */}
+						<div className="bg-gradient-to-br from-[#252525] to-[#1a1a1a] backdrop-blur-sm rounded-xl border-2 border-[#ffd700]/30 p-6 shadow-2xl">
+							<h3 className="text-xl font-bold text-[#ffd700] mb-4">💝 Support the Server</h3>
+							<p className="text-[#d0d0d0] text-sm mb-4">
+								Help us keep the server running and improve the gaming experience for everyone!
+							</p>
 
-							<div className="space-y-3">
-								<div className="bg-[#1a1a1a] border border-[#404040]/60 rounded-lg p-3 flex items-center gap-3">
-									<span className="text-2xl">⚡</span>
-									<div className="flex-1">
-										<p className="text-[#e0e0e0] text-sm font-medium">Quick Looting</p>
-										<p className="text-[#888] text-xs">Customize to your liking</p>
-									</div>
+							<div className="space-y-3 mb-4">
+								<div className="flex items-start gap-3">
+									<span className="text-[#ffd700] text-lg">✓</span>
+									<p className="text-[#e0e0e0] text-sm">Help maintain server stability and uptime</p>
 								</div>
-
-								<div className="bg-[#1a1a1a] border border-[#404040]/60 rounded-lg p-3 flex items-center gap-3">
-									<span className="text-2xl">💀</span>
-									<div className="flex-1">
-										<p className="text-[#e0e0e0] text-sm font-medium">Death Protection</p>
-										<p className="text-[#888] text-xs">Lose 30% less on death</p>
-									</div>
+								<div className="flex items-start gap-3">
+									<span className="text-[#ffd700] text-lg">✓</span>
+									<p className="text-[#e0e0e0] text-sm">Support new features and content updates</p>
 								</div>
-
-								<div className="bg-[#1a1a1a] border border-[#404040]/60 rounded-lg p-3 flex items-center gap-3">
-									<span className="text-2xl">⭐</span>
-									<div className="flex-1">
-										<p className="text-[#e0e0e0] text-sm font-medium">XP Boost</p>
-										<p className="text-[#888] text-xs">50% XP boost for 3 hours daily</p>
-									</div>
+								<div className="flex items-start gap-3">
+									<span className="text-[#ffd700] text-lg">✓</span>
+									<p className="text-[#e0e0e0] text-sm">Contribute to community growth and events</p>
+								</div>
+								<div className="flex items-start gap-3">
+									<span className="text-[#ffd700] text-lg">✓</span>
+									<p className="text-[#e0e0e0] text-sm">Get exclusive rewards and benefits</p>
 								</div>
 							</div>
+
+							<Link
+								href="/contribute/donate"
+								className="block w-full bg-gradient-to-r from-[#ffd700] to-[#ffed4e] hover:from-[#ffed4e] hover:to-[#ffd700] text-[#0a0a0a] text-center font-bold py-3 px-4 rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+							>
+								Donate Now
+							</Link>
 						</div>
 
 
