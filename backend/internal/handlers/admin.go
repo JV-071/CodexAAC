@@ -312,7 +312,7 @@ func GetLogsListHandler(w http.ResponseWriter, r *http.Request) {
 
 	var logFiles []LogFile
 	for _, file := range files {
-		if !file.IsDir() && strings.HasSuffix(strings.ToLower(file.Name()), ".txt") {
+		if !file.IsDir() && strings.HasSuffix(strings.ToLower(file.Name()), ".log") {
 			info, err := file.Info()
 			if err != nil {
 				continue
@@ -340,8 +340,8 @@ func GetLogContentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !strings.HasSuffix(strings.ToLower(fileName), ".txt") {
-		utils.WriteError(w, http.StatusBadRequest, "Only .txt files are allowed")
+	if !strings.HasSuffix(strings.ToLower(fileName), ".log") {
+		utils.WriteError(w, http.StatusBadRequest, "Only .log files are allowed")
 		return
 	}
 
