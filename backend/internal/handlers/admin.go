@@ -3,7 +3,10 @@ package handlers
 import (
 	"database/sql"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"codexaac-backend/internal/database"
@@ -278,5 +281,106 @@ func GetAdminAccountDetailsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteSuccess(w, http.StatusOK, "Account details retrieved successfully", acc)
+}
+
+type LogFile struct {
+	Name     string `json:"name"`
+	Size     int64  `json:"size"`
+	Modified string `json:"modified"`
+}
+
+func GetLogsListHandler(w http.ResponseWriter, r *http.Request) {
+	serverPath := os.Getenv("SERVER_PATH")
+	if serverPath == "" {
+		utils.WriteError(w, http.StatusBadRequest, "SERVER_PATH not configured")
+		return
+	}
+
+	logsPath := filepath.Join(serverPath, "logs")
+
+	if _, err := os.Stat(logsPath); os.IsNotExist(err) {
+		utils.WriteSuccess(w, http.StatusOK, "Logs directory not found", []LogFile{})
+		return
+	}
+
+	files, err := os.ReadDir(logsPath)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, "Error reading logs directory")
+		return
+	}
+
+	var logFiles []LogFile
+	for _, file := range files {
+		if !file.IsDir() && strings.HasSuffix(strings.ToLower(file.Name()), ".txt") {
+			info, err := file.Info()
+			if err != nil {
+				continue
+			}
+			logFiles = append(logFiles, LogFile{
+				Name:     file.Name(),
+				Size:     info.Size(),
+				Modified: info.ModTime().Format("2006-01-02 15:04:05"),
+			})
+		}
+	}
+
+	utils.WriteSuccess(w, http.StatusOK, "Logs retrieved successfully", logFiles)
+}
+
+func GetLogContentHandler(w http.ResponseWriter, r *http.Request) {
+	fileName := r.URL.Query().Get("file")
+	if fileName == "" {
+		utils.WriteError(w, http.StatusBadRequest, "File name is required")
+		return
+	}
+
+	if strings.Contains(fileName, "..") || strings.Contains(fileName, "/") || strings.Contains(fileName, "\\") {
+		utils.WriteError(w, http.StatusBadRequest, "Invalid file name")
+		return
+	}
+
+	if !strings.HasSuffix(strings.ToLower(fileName), ".txt") {
+		utils.WriteError(w, http.StatusBadRequest, "Only .txt files are allowed")
+		return
+	}
+
+	serverPath := os.Getenv("SERVER_PATH")
+	if serverPath == "" {
+		utils.WriteError(w, http.StatusBadRequest, "SERVER_PATH not configured")
+		return
+	}
+
+	logsPath := filepath.Join(serverPath, "logs")
+
+	if _, err := os.Stat(logsPath); os.IsNotExist(err) {
+		utils.WriteError(w, http.StatusNotFound, "Logs directory not found")
+		return
+	}
+
+	filePath := filepath.Join(logsPath, fileName)
+
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		utils.WriteError(w, http.StatusNotFound, "Log file not found")
+		return
+	}
+
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, "Error reading log file")
+		return
+	}
+
+	maxSize := 10 * 1024 * 1024
+	if len(content) > maxSize {
+		content = content[len(content)-maxSize:]
+	}
+
+	response := map[string]interface{}{
+		"fileName": fileName,
+		"content":  string(content),
+		"size":     len(content),
+	}
+
+	utils.WriteSuccess(w, http.StatusOK, "Log content retrieved successfully", response)
 }
 

@@ -130,6 +130,8 @@ func main() {
 	admin.HandleFunc("/changelogs", handlers.CreateChangelogHandler).Methods("POST")
 	admin.HandleFunc("/changelogs/{id}", handlers.DeleteChangelogHandler).Methods("DELETE")
 	admin.HandleFunc("/pages/rules", handlers.UpdateRulesHandler).Methods("PUT")
+	admin.HandleFunc("/logs", handlers.GetLogsListHandler).Methods("GET")
+	admin.HandleFunc("/logs/content", handlers.GetLogContentHandler).Methods("GET")
 
 	port := os.Getenv("PORT")
 	if port == "" {
