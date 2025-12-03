@@ -155,10 +155,10 @@ export default function AdminTopBar() {
   }, [router])
 
   return (
-    <div className="relative z-20" ref={containerRef}>
-      {/* Admin Navigation Menu */}
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
-        <div className="bg-[#252525]/95 backdrop-blur-md border-2 border-[#ffd700]/30 rounded-lg shadow-xl">
+    <div className="fixed top-0 left-0 w-full z-50" ref={containerRef}>
+      <div className="w-full">
+        {/* Admin Navigation Menu */}
+        <div className="bg-[#252525]/95 backdrop-blur-md border-b-2 border-[#ffd700]/30 shadow-xl">
           <nav className="flex items-center justify-center gap-4 sm:gap-6 lg:gap-8 py-3 flex-wrap">
             {adminNavItems.map((item) => (
               <NavItemComponent

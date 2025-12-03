@@ -25,7 +25,9 @@ export default function AdminLayout({
     <>
       {/* Always show AdminTopBar in admin area */}
       <AdminTopBar />
-      {children}
+      <div className="pt-16">
+        {children}
+      </div>
     </>
   )
 }
