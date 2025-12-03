@@ -27,6 +27,7 @@ type AccountInfo struct {
 	LoyaltyTitle           string `json:"loyaltyTitle,omitempty"`
 	DeletionScheduledAt    *int64 `json:"deletionScheduledAt,omitempty"`
 	Status                 string `json:"status"`
+	PageAccess             int    `json:"page_access"`
 }
 
 type DeleteAccountRequest struct {
@@ -44,12 +45,12 @@ func getDeletionGracePeriodDays() int {
 	if gracePeriodStr == "" {
 		return DefaultDeletionGracePeriodDays
 	}
-	
+
 	gracePeriod, err := strconv.Atoi(gracePeriodStr)
 	if err != nil || gracePeriod < 1 {
 		return DefaultDeletionGracePeriodDays
 	}
-	
+
 	return gracePeriod
 }
 
@@ -72,11 +73,12 @@ func GetAccountHandler(w http.ResponseWriter, r *http.Request) {
 
 	var deletionScheduledAt sql.NullInt64
 	var status string
+	var pageAccess int
 
 	err := database.DB.QueryRowContext(ctx,
-		"SELECT email, premdays, lastday, creation, coins, coins_transferable, COALESCE(deletion_scheduled_at, 0), COALESCE(status, 'active') FROM accounts WHERE id = ?",
+		"SELECT email, premdays, lastday, creation, coins, coins_transferable, COALESCE(deletion_scheduled_at, 0), COALESCE(status, 'active'), page_access FROM accounts WHERE id = ?",
 		userID,
-	).Scan(&email, &premdays, &lastday, &creation, &coins, &coinsTransferable, &deletionScheduledAt, &status)
+	).Scan(&email, &premdays, &lastday, &creation, &coins, &coinsTransferable, &deletionScheduledAt, &status, &pageAccess)
 
 	if err != nil {
 		if utils.HandleDBError(w, err) {
@@ -167,6 +169,7 @@ func GetAccountHandler(w http.ResponseWriter, r *http.Request) {
 		LoyaltyPoints:          loyaltyPoints,
 		LoyaltyTitle:           loyaltyTitleFormatted,
 		Status:                 status,
+		PageAccess:             pageAccess,
 	}
 
 	if vipExpiry != "" {
@@ -249,9 +252,9 @@ func DeleteAccountHandler(w http.ResponseWriter, r *http.Request) {
 
 	var exists int
 	err = database.DB.QueryRowContext(ctx,
-		`SELECT 1 
-		 FROM players p 
-		 INNER JOIN players_online po ON p.id = po.player_id 
+		`SELECT 1
+		 FROM players p
+		 INNER JOIN players_online po ON p.id = po.player_id
 		 WHERE p.account_id = ?
 		 LIMIT 1`,
 		userID,
@@ -341,4 +344,3 @@ func CancelDeletionHandler(w http.ResponseWriter, r *http.Request) {
 
 	utils.WriteSuccess(w, http.StatusOK, "Account deletion canceled successfully", nil)
 }
-

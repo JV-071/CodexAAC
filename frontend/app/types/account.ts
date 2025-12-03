@@ -18,6 +18,7 @@ export interface AccountInfo {
     loyaltyTitle?: string
     deletionScheduledAt?: number
     status: string
+    pageAccess?: number
 }
 
 export interface ApiResponse<T> {
@@ -27,4 +28,3 @@ export interface ApiResponse<T> {
 }
 
 export interface AccountApiResponse extends ApiResponse<AccountInfo> {}
-
