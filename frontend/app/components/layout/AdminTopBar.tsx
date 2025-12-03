@@ -17,7 +17,6 @@ interface NavItem {
 	dropdown?: DropdownItem[]
 }
 
-// Moved outside component to avoid recreation on every render
 const adminNavItems: NavItem[] = [
 	{
 		label: 'Dashboard',
@@ -25,42 +24,42 @@ const adminNavItems: NavItem[] = [
 		icon: '⚡',
 	},
 	{
-		label: 'Accounts',
+		label: 'User Management',
 		icon: '👥',
 		dropdown: [
-			{ label: 'Manage Accounts', href: '/admin/accounts', icon: '📋' },
-			{ label: 'Manage Players', href: '/admin/players', icon: '📊' },
+			{ label: 'Manage User Accounts', href: '/admin/accounts', icon: '📋' },
+			{ label: 'Manage Player Characters', href: '/admin/players', icon: '📊' },
 		],
 	},
 	{
-		label: 'Characters',
+		label: 'Game Management',
 		icon: '🎮',
 		dropdown: [
-			{ label: 'List Characters', href: '/admin/characters', icon: '👤' },
-			{ label: 'Bans', href: '/admin/bans', icon: '🚫' },
+			{ label: 'View All Characters', href: '/admin/characters', icon: '👤' },
+			{ label: 'Manage Bans & Punishments', href: '/admin/bans', icon: '🚫' },
 		],
 	},
 	{
-		label: 'Server',
+		label: 'Server Configuration',
 		icon: '🖥️',
 		dropdown: [
-			{ label: 'Settings', href: '/admin/server', icon: '⚙️' },
-			{ label: 'Logs', href: '/admin/logs', icon: '📝' },
+			{ label: 'Server Settings', href: '/admin/server', icon: '⚙️' },
+			{ label: 'View Server Logs', href: '/admin/logs', icon: '📝' },
 		],
 	},
 	{
-		label: 'System',
+		label: 'System Operations',
 		icon: '🔧',
 		dropdown: [
-			{ label: 'Maintenance', href: '/admin/maintenance', icon: '🔧' },
-			{ label: 'Backup', href: '/admin/backup', icon: '💾' },
+			{ label: 'Maintenance Mode', href: '/admin/maintenance', icon: '🔧' },
+			{ label: 'Database Backup', href: '/admin/backup', icon: '💾' },
 		],
 	},
 	{
-		label: 'Content',
+		label: 'Content Management',
 		icon: '📄',
 		dropdown: [
-			{ label: 'Rules', href: '/admin/rules', icon: '📜' },
+			{ label: 'Edit Server Rules', href: '/admin/rules', icon: '📜' },
 		],
 	},
 	{
