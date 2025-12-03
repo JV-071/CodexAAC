@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { api } from '../services/api'
 import CreateChangelogSection from '../components/admin/CreateChangelogSection'
 import ManageChangelogs from '../components/admin/ManageChangelogs'
+import CommentsNotifications from '../components/admin/CommentsNotifications'
 import type { AdminStats } from '../types/admin'
 import type { ApiResponse } from '../types/account'
 
@@ -13,7 +14,7 @@ const SKELETON_CARDS = Array.from({ length: 4 }, (_, i) => i) // 4 cards: Total 
 
 const handleAdminError = (err: any, router: { replace: (path: string) => void }): boolean => {
     const status = err.status || err.response?.status
-    
+
     if (status === 404) {
         router.replace('/not-found')
         return true
@@ -124,6 +125,11 @@ export default function AdminPage() {
                 ) : stats ? (
                     <StatsGrid stats={stats} />
                 ) : null}
+
+                {/* Comments Notifications */}
+                <div className="mb-8">
+                    <CommentsNotifications />
+                </div>
 
                 {/* Create Changelog Section */}
                 <CreateChangelogSection onSuccess={() => {

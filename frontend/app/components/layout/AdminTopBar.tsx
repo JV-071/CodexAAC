@@ -61,6 +61,7 @@ const adminNavItems: NavItem[] = [
 		dropdown: [
 			{ label: 'Edit Server Rules', href: '/admin/rules', icon: '📜' },
 			{ label: 'Manage News', href: '/admin/news', icon: '📰' },
+			{ label: 'Manage Comments', href: '/admin/comments', icon: '💬' },
 		],
 	},
 	{

@@ -568,6 +568,328 @@ func GetNewsCommentsHandler(w http.ResponseWriter, r *http.Request) {
 	utils.WriteSuccess(w, http.StatusOK, "Comments retrieved successfully", comments)
 }
 
+func GetAllNewsCommentsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := utils.NewDBContext()
+	defer cancel()
+
+	pageStr := r.URL.Query().Get("page")
+	limitStr := r.URL.Query().Get("limit")
+	newsIDStr := r.URL.Query().Get("newsId")
+	searchStr := r.URL.Query().Get("search")
+
+	page := 1
+	limit := 50
+
+	if pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 200 {
+			limit = l
+		}
+	}
+
+	offset := (page - 1) * limit
+
+	// Build query with filters
+	query := `
+		SELECT nc.id, nc.news_id, nc.author_id, nc.character_id, nc.content,
+		       UNIX_TIMESTAMP(nc.created_at) as created_at,
+		       p.name as character_name,
+		       COALESCE(p.looktype, 128) as looktype,
+		       COALESCE(p.lookhead, 0) as lookhead,
+		       COALESCE(p.lookbody, 0) as lookbody,
+		       COALESCE(p.looklegs, 0) as looklegs,
+		       COALESCE(p.lookfeet, 0) as lookfeet,
+		       COALESCE(p.lookaddons, 0) as lookaddons,
+		       n.title as news_title
+		FROM news_comments nc
+		INNER JOIN players p ON p.id = nc.character_id
+		INNER JOIN news n ON n.id = nc.news_id
+		WHERE 1=1
+	`
+	args := []interface{}{}
+
+	if newsIDStr != "" {
+		if newsID, err := strconv.Atoi(newsIDStr); err == nil && newsID > 0 {
+			query += " AND nc.news_id = ?"
+			args = append(args, newsID)
+		}
+	}
+
+	if searchStr != "" {
+		query += " AND (p.name LIKE ? OR nc.content LIKE ? OR n.title LIKE ?)"
+		searchPattern := "%" + searchStr + "%"
+		args = append(args, searchPattern, searchPattern, searchPattern)
+	}
+
+	query += " ORDER BY nc.created_at DESC LIMIT ? OFFSET ?"
+	args = append(args, limit, offset)
+
+	rows, err := database.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		if utils.HandleDBError(w, err) {
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, "Error fetching comments")
+		return
+	}
+	defer rows.Close()
+
+	type CommentWithNews struct {
+		NewsComment
+		NewsTitle string `json:"newsTitle"`
+	}
+
+	comments := make([]CommentWithNews, 0)
+	for rows.Next() {
+		var comment CommentWithNews
+		if err := rows.Scan(
+			&comment.ID,
+			&comment.NewsID,
+			&comment.AuthorID,
+			&comment.CharacterID,
+			&comment.Content,
+			&comment.CreatedAt,
+			&comment.CharacterName,
+			&comment.LookType,
+			&comment.LookHead,
+			&comment.LookBody,
+			&comment.LookLegs,
+			&comment.LookFeet,
+			&comment.LookAddons,
+			&comment.NewsTitle,
+		); err != nil {
+			continue
+		}
+		comments = append(comments, comment)
+	}
+
+	// Get total count
+	countQuery := "SELECT COUNT(*) FROM news_comments nc INNER JOIN players p ON p.id = nc.character_id INNER JOIN news n ON n.id = nc.news_id WHERE 1=1"
+	countArgs := []interface{}{}
+
+	if newsIDStr != "" {
+		if newsID, err := strconv.Atoi(newsIDStr); err == nil && newsID > 0 {
+			countQuery += " AND nc.news_id = ?"
+			countArgs = append(countArgs, newsID)
+		}
+	}
+
+	if searchStr != "" {
+		countQuery += " AND (p.name LIKE ? OR nc.content LIKE ? OR n.title LIKE ?)"
+		searchPattern := "%" + searchStr + "%"
+		countArgs = append(countArgs, searchPattern, searchPattern, searchPattern)
+	}
+
+	var totalCount int
+	err = database.DB.QueryRowContext(ctx, countQuery, countArgs...).Scan(&totalCount)
+	if err != nil {
+		totalCount = len(comments)
+	}
+
+	response := map[string]interface{}{
+		"comments": comments,
+		"pagination": map[string]interface{}{
+			"page":       page,
+			"limit":      limit,
+			"total":      totalCount,
+			"totalPages": (totalCount + limit - 1) / limit,
+		},
+	}
+
+	utils.WriteSuccess(w, http.StatusOK, "Comments retrieved successfully", response)
+}
+
+func GetRecentCommentsCountHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := utils.NewDBContext()
+	defer cancel()
+
+	hoursStr := r.URL.Query().Get("hours")
+	hours := 24 // Default to last 24 hours
+	if hoursStr != "" {
+		if h, err := strconv.Atoi(hoursStr); err == nil && h > 0 && h <= 168 {
+			hours = h
+		}
+	}
+
+	var count int
+	err := database.DB.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM news_comments
+		 WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? HOUR)`,
+		hours,
+	).Scan(&count)
+
+	if err != nil {
+		if utils.HandleDBError(w, err) {
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, "Error counting comments")
+		return
+	}
+
+	utils.WriteSuccess(w, http.StatusOK, "Count retrieved successfully", map[string]interface{}{
+		"count": count,
+		"hours": hours,
+	})
+}
+
+func GetUnreadCommentsHandler(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+	if !ok {
+		utils.WriteError(w, http.StatusUnauthorized, "Authentication required")
+		return
+	}
+
+	ctx, cancel := utils.NewDBContext()
+	defer cancel()
+
+	// Get unread comments (comments not in admin_read_comments for this user)
+	query := `
+		SELECT nc.id, nc.news_id, nc.author_id, nc.character_id, nc.content,
+		       UNIX_TIMESTAMP(nc.created_at) as created_at,
+		       p.name as character_name,
+		       COALESCE(p.looktype, 128) as looktype,
+		       COALESCE(p.lookhead, 0) as lookhead,
+		       COALESCE(p.lookbody, 0) as lookbody,
+		       COALESCE(p.looklegs, 0) as looklegs,
+		       COALESCE(p.lookfeet, 0) as lookfeet,
+		       COALESCE(p.lookaddons, 0) as lookaddons,
+		       n.title as news_title
+		FROM news_comments nc
+		INNER JOIN players p ON p.id = nc.character_id
+		INNER JOIN news n ON n.id = nc.news_id
+		LEFT JOIN admin_read_comments arc ON arc.comment_id = nc.id AND arc.admin_id = ?
+		WHERE arc.id IS NULL
+		ORDER BY nc.created_at DESC
+		LIMIT 50
+	`
+
+	rows, err := database.DB.QueryContext(ctx, query, userID)
+	if err != nil {
+		if utils.HandleDBError(w, err) {
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, "Error fetching unread comments")
+		return
+	}
+	defer rows.Close()
+
+	type CommentWithNews struct {
+		NewsComment
+		NewsTitle string `json:"newsTitle"`
+	}
+
+	comments := make([]CommentWithNews, 0)
+	for rows.Next() {
+		var comment CommentWithNews
+		if err := rows.Scan(
+			&comment.ID,
+			&comment.NewsID,
+			&comment.AuthorID,
+			&comment.CharacterID,
+			&comment.Content,
+			&comment.CreatedAt,
+			&comment.CharacterName,
+			&comment.LookType,
+			&comment.LookHead,
+			&comment.LookBody,
+			&comment.LookLegs,
+			&comment.LookFeet,
+			&comment.LookAddons,
+			&comment.NewsTitle,
+		); err != nil {
+			continue
+		}
+		comments = append(comments, comment)
+	}
+
+	utils.WriteSuccess(w, http.StatusOK, "Unread comments retrieved successfully", comments)
+}
+
+func MarkCommentAsReadHandler(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+	if !ok {
+		utils.WriteError(w, http.StatusUnauthorized, "Authentication required")
+		return
+	}
+
+	vars := mux.Vars(r)
+	commentIDStr := vars["id"]
+
+	commentID, err := strconv.Atoi(commentIDStr)
+	if err != nil || commentID <= 0 {
+		utils.WriteError(w, http.StatusBadRequest, "Invalid comment ID")
+		return
+	}
+
+	ctx, cancel := utils.NewDBContext()
+	defer cancel()
+
+	// Check if comment exists
+	var exists bool
+	err = database.DB.QueryRowContext(ctx, "SELECT COUNT(*) > 0 FROM news_comments WHERE id = ?", commentID).Scan(&exists)
+	if err != nil {
+		if utils.HandleDBError(w, err) {
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, "Error checking comment")
+		return
+	}
+
+	if !exists {
+		utils.WriteError(w, http.StatusNotFound, "Comment not found")
+		return
+	}
+
+	// Insert or ignore if already exists
+	query := `INSERT IGNORE INTO admin_read_comments (admin_id, comment_id, read_at) VALUES (?, ?, NOW())`
+	_, err = database.DB.ExecContext(ctx, query, userID, commentID)
+	if err != nil {
+		if utils.HandleDBError(w, err) {
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, "Error marking comment as read")
+		return
+	}
+
+	utils.WriteSuccess(w, http.StatusOK, "Comment marked as read", nil)
+}
+
+func MarkAllCommentsAsReadHandler(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+	if !ok {
+		utils.WriteError(w, http.StatusUnauthorized, "Authentication required")
+		return
+	}
+
+	ctx, cancel := utils.NewDBContext()
+	defer cancel()
+
+	// Insert all unread comments as read
+	query := `
+		INSERT IGNORE INTO admin_read_comments (admin_id, comment_id, read_at)
+		SELECT ?, nc.id, NOW()
+		FROM news_comments nc
+		LEFT JOIN admin_read_comments arc ON arc.comment_id = nc.id AND arc.admin_id = ?
+		WHERE arc.id IS NULL
+	`
+
+	_, err := database.DB.ExecContext(ctx, query, userID, userID)
+	if err != nil {
+		if utils.HandleDBError(w, err) {
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, "Error marking comments as read")
+		return
+	}
+
+	utils.WriteSuccess(w, http.StatusOK, "All comments marked as read", nil)
+}
+
 func CreateNewsCommentHandler(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(middleware.UserIDKey).(int)
 	if !ok {
@@ -697,16 +1019,12 @@ func DeleteNewsCommentHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := utils.NewDBContext()
 	defer cancel()
 
-	// Check if user is admin or comment owner
-	var isAdmin bool
+	// Check if comment exists and get author
 	var commentAuthorID int
 	err = database.DB.QueryRowContext(ctx,
-		`SELECT nc.author_id, COALESCE(a.page_access, 0) = 1 as is_admin
-		 FROM news_comments nc
-		 INNER JOIN accounts a ON a.id = nc.author_id
-		 WHERE nc.id = ?`,
+		`SELECT author_id FROM news_comments WHERE id = ?`,
 		commentID,
-	).Scan(&commentAuthorID, &isAdmin)
+	).Scan(&commentAuthorID)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -714,6 +1032,18 @@ func DeleteNewsCommentHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		utils.WriteError(w, http.StatusInternalServerError, "Error checking comment")
+		return
+	}
+
+	// Check if current user is admin
+	var isAdmin bool
+	err = database.DB.QueryRowContext(ctx,
+		`SELECT COALESCE(page_access, 0) = 1 FROM accounts WHERE id = ?`,
+		userID,
+	).Scan(&isAdmin)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, "Error checking admin status")
 		return
 	}
 

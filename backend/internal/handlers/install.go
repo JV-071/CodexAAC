@@ -534,6 +534,23 @@ func ApplySchema(ctx context.Context) map[string]string {
 		results["news_comments"] = "Error: " + err.Error()
 	}
 
+	// 8. Check and add admin_read_comments table if missing
+	if err := CreateTableIfNotExists(ctx, "admin_read_comments", `
+		CREATE TABLE IF NOT EXISTS admin_read_comments (
+			id INT AUTO_INCREMENT PRIMARY KEY,
+			admin_id INT UNSIGNED NOT NULL,
+			comment_id INT NOT NULL,
+			read_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE KEY unique_admin_comment (admin_id, comment_id),
+			INDEX idx_admin_id (admin_id),
+			INDEX idx_comment_id (comment_id),
+			INDEX idx_read_at (read_at),
+			FOREIGN KEY (comment_id) REFERENCES news_comments(id) ON DELETE CASCADE
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+	`, "", &results); err != nil {
+		results["admin_read_comments"] = "Error: " + err.Error()
+	}
+
 		if exists {
 			results["accounts."+columnName] = "already exists"
 			continue

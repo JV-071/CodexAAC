@@ -24,6 +24,7 @@ export interface NewsComment {
   lookLegs?: number
   lookFeet?: number
   lookAddons?: number
+  newsTitle?: string
 }
 
 export interface PaginationInfo {
