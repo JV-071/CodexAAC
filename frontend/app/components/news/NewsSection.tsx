@@ -7,7 +7,6 @@ import { useAuth } from '../../contexts/AuthContext'
 import { formatRelativeTime } from '../../utils/date'
 import type { News, NewsResponse } from '../../types/news'
 import type { ApiResponse } from '../../types/account'
-import NewsComments from './NewsComments'
 import TiptapEditor from '../admin/TiptapEditor'
 
 export default function NewsSection() {
@@ -19,12 +18,13 @@ export default function NewsSection() {
   const [editTitle, setEditTitle] = useState('')
   const [editContent, setEditContent] = useState('')
   const [saving, setSaving] = useState(false)
-  const [expandedNews, setExpandedNews] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     fetchNews()
-    checkAdmin()
-  }, [])
+    if (isAuthenticated) {
+      checkAdmin()
+    }
+  }, [isAuthenticated])
 
   const checkAdmin = async () => {
     try {
@@ -86,17 +86,6 @@ export default function NewsSection() {
     }
   }
 
-  const toggleComments = (newsId: number) => {
-    setExpandedNews((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(newsId)) {
-        newSet.delete(newsId)
-      } else {
-        newSet.add(newsId)
-      }
-      return newSet
-    })
-  }
 
   if (loading) {
     return (
@@ -128,7 +117,6 @@ export default function NewsSection() {
       <div className="space-y-6">
         {newsItems.map((item) => {
           const isEditing = editingId === item.id
-          const showComments = expandedNews.has(item.id)
           const icon = item.icon || '📰'
 
           return (
@@ -154,7 +142,11 @@ export default function NewsSection() {
                         className="w-full px-3 py-2 bg-[#252525] border border-[#404040] rounded-lg text-[#e0e0e0] focus:outline-none focus:border-[#ffd700] mb-2"
                       />
                     ) : (
-                      <h3 className="text-[#ffd700] font-bold text-lg sm:text-xl mb-2">{item.title}</h3>
+                      <Link href={`/news/${item.id}`}>
+                        <h3 className="text-[#ffd700] font-bold text-lg sm:text-xl mb-2 hover:text-[#ffd33d] hover:underline cursor-pointer">
+                          {item.title}
+                        </h3>
+                      </Link>
                     )}
                     <div className="flex items-center gap-3 flex-wrap text-xs text-[#888]">
                       <span>{formatRelativeTime(item.createdAt)}</span>
@@ -220,18 +212,17 @@ export default function NewsSection() {
                 />
               )}
 
-              {/* Comments Toggle */}
-              <div className="mt-4 pt-4 border-t border-[#404040]/30">
-                <button
-                  onClick={() => toggleComments(item.id)}
-                  className="text-[#ffd700] hover:text-[#ffd33d] text-sm font-semibold"
-                >
-                  {showComments ? '▼ Hide Comments' : '▶ Show Comments'}
-                </button>
-              </div>
-
-              {/* Comments Section */}
-              {showComments && <NewsComments newsId={item.id} isAdmin={isAdmin} />}
+              {/* Link to full page */}
+              {!isEditing && (
+                <div className="mt-4 pt-4 border-t border-[#404040]/30">
+                  <Link
+                    href={`/news/${item.id}`}
+                    className="text-[#ffd700] hover:text-[#ffd33d] text-sm font-semibold hover:underline"
+                  >
+                    View full page and comments →
+                  </Link>
+                </div>
+              )}
             </div>
           )
         })}

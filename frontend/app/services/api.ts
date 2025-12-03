@@ -61,16 +61,18 @@ class ApiService {
                 error.status = response.status;
                 throw error;
             }
-            
+
             if (response.status === 401 && !isPublic) {
                 authStateManager.notifyUnauthorized()
                 if (typeof window !== 'undefined') {
-                    if (window.location.pathname !== '/login') {
+                    const currentPath = window.location.pathname;
+                    // Only redirect if not already on login or home page
+                    if (currentPath !== '/login' && currentPath !== '/') {
                         window.location.href = '/login?unauthorized=true';
                     }
                 }
             }
-            
+
             const error = new Error(data.message || 'Request error') as any;
             error.status = response.status;
             throw error;

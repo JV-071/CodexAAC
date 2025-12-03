@@ -423,6 +423,14 @@ func DeleteNewsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetNewsDetailsHandler(w http.ResponseWriter, r *http.Request) {
+	getNewsDetails(w, r)
+}
+
+func GetNewsDetailsPublicHandler(w http.ResponseWriter, r *http.Request) {
+	getNewsDetails(w, r)
+}
+
+func getNewsDetails(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	newsIDStr := vars["id"]
 

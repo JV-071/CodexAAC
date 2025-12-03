@@ -80,6 +80,7 @@ func main() {
 
 	r.HandleFunc("/api/pages/rules", handlers.GetRulesHandler).Methods("GET")
 	r.HandleFunc("/api/news", handlers.GetNewsHandler).Methods("GET")
+	r.HandleFunc("/api/news/{id}", handlers.GetNewsDetailsPublicHandler).Methods("GET")
 	r.HandleFunc("/api/news/{id}/comments", handlers.GetNewsCommentsHandler).Methods("GET")
 
 	r.HandleFunc("/login", handlers.TibiaClientLoginHandler).Methods("POST", "OPTIONS")
