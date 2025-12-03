@@ -28,7 +28,7 @@ const adminNavItems: NavItem[] = [
     label: 'Accounts',
     icon: '👥',
     dropdown: [
-      { label: 'Manage Accounts', href: '/admin', icon: '📋' },
+      { label: 'Manage Accounts', href: '/admin/accounts', icon: '📋' },
       { label: 'Statistics', href: '/admin', icon: '📊' },
     ],
   },

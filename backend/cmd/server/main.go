@@ -125,6 +125,8 @@ func main() {
 	admin.HandleFunc("/stats", handlers.GetAdminStatsHandler).Methods("GET")
 	admin.HandleFunc("/accounts", handlers.GetAdminAccountsHandler).Methods("GET")
 	admin.HandleFunc("/account", handlers.GetAdminAccountDetailsHandler).Methods("GET")
+	admin.HandleFunc("/account", handlers.UpdateAdminAccountHandler).Methods("PUT")
+	admin.HandleFunc("/account/sql", handlers.ExecuteAdminSQLHandler).Methods("POST")
 	admin.HandleFunc("/maintenance", handlers.GetMaintenanceStatusHandler).Methods("GET")
 	admin.HandleFunc("/maintenance", handlers.ToggleMaintenanceHandler).Methods("POST")
 	admin.HandleFunc("/changelogs", handlers.CreateChangelogHandler).Methods("POST")

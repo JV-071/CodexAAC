@@ -135,7 +135,7 @@ func GetAdminAccountsHandler(w http.ResponseWriter, r *http.Request) {
 			LEFT JOIN players p ON p.account_id = a.id
 			WHERE a.email LIKE ?
 			GROUP BY a.id
-			ORDER BY a.id DESC
+			ORDER BY a.id ASC
 			LIMIT ? OFFSET ?
 		`
 		args = []interface{}{"%" + search + "%", limit, offset}
@@ -148,7 +148,7 @@ func GetAdminAccountsHandler(w http.ResponseWriter, r *http.Request) {
 			FROM accounts a
 			LEFT JOIN players p ON p.account_id = a.id
 			GROUP BY a.id
-			ORDER BY a.id DESC
+			ORDER BY a.id ASC
 			LIMIT ? OFFSET ?
 		`
 		args = []interface{}{limit, offset}
@@ -384,3 +384,167 @@ func GetLogContentHandler(w http.ResponseWriter, r *http.Request) {
 	utils.WriteSuccess(w, http.StatusOK, "Log content retrieved successfully", response)
 }
 
+type UpdateAdminAccountRequest struct {
+	PremiumDays       *int  `json:"premiumDays"`
+	Coins             *int  `json:"coins"`
+	CoinsTransferable *int  `json:"coinsTransferable"`
+	Status            *int  `json:"status"`
+	IsAdmin           *bool `json:"isAdmin"`
+}
+
+func UpdateAdminAccountHandler(w http.ResponseWriter, r *http.Request) {
+	accountIDStr := r.URL.Query().Get("id")
+	if accountIDStr == "" {
+		utils.WriteError(w, http.StatusBadRequest, "Account ID is required")
+		return
+	}
+
+	accountID, err := strconv.Atoi(accountIDStr)
+	if err != nil || accountID <= 0 {
+		utils.WriteError(w, http.StatusBadRequest, "Invalid account ID")
+		return
+	}
+
+	var req UpdateAdminAccountRequest
+	if err := utils.DecodeJSON(r, &req); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	ctx, cancel := utils.NewDBContext()
+	defer cancel()
+
+	var exists bool
+	err = database.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM accounts WHERE id = ?)", accountID).Scan(&exists)
+	if err != nil || !exists {
+		utils.WriteError(w, http.StatusNotFound, "Account not found")
+		return
+	}
+
+	updates := []string{}
+	args := []interface{}{}
+
+	if req.PremiumDays != nil {
+		updates = append(updates, "premdays = ?")
+		args = append(args, *req.PremiumDays)
+	}
+
+	if req.Coins != nil {
+		updates = append(updates, "coins = ?")
+		args = append(args, *req.Coins)
+	}
+
+	if req.CoinsTransferable != nil {
+		updates = append(updates, "coins_transferable = ?")
+		args = append(args, *req.CoinsTransferable)
+	}
+
+	if req.Status != nil {
+		updates = append(updates, "status = ?")
+		args = append(args, *req.Status)
+	}
+
+	if req.IsAdmin != nil {
+		pageAccess := 0
+		if *req.IsAdmin {
+			pageAccess = 1
+		}
+		updates = append(updates, "page_access = ?")
+		args = append(args, pageAccess)
+	}
+
+	if len(updates) == 0 {
+		utils.WriteError(w, http.StatusBadRequest, "No fields to update")
+		return
+	}
+
+	args = append(args, accountID)
+
+	query := "UPDATE accounts SET " + strings.Join(updates, ", ") + " WHERE id = ?"
+	_, err = database.DB.ExecContext(ctx, query, args...)
+	if err != nil {
+		if utils.HandleDBError(w, err) {
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, "Error updating account")
+		return
+	}
+
+	utils.WriteSuccess(w, http.StatusOK, "Account updated successfully", nil)
+}
+
+type ExecuteAdminSQLRequest struct {
+	SQL string `json:"sql"`
+}
+
+func ExecuteAdminSQLHandler(w http.ResponseWriter, r *http.Request) {
+	accountIDStr := r.URL.Query().Get("id")
+	if accountIDStr == "" {
+		utils.WriteError(w, http.StatusBadRequest, "Account ID is required")
+		return
+	}
+
+	accountID, err := strconv.Atoi(accountIDStr)
+	if err != nil || accountID <= 0 {
+		utils.WriteError(w, http.StatusBadRequest, "Invalid account ID")
+		return
+	}
+
+	var req ExecuteAdminSQLRequest
+	if err := utils.DecodeJSON(r, &req); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if strings.TrimSpace(req.SQL) == "" {
+		utils.WriteError(w, http.StatusBadRequest, "SQL query cannot be empty")
+		return
+	}
+
+	sqlUpper := strings.ToUpper(strings.TrimSpace(req.SQL))
+
+	dangerousKeywords := []string{"DROP", "TRUNCATE", "ALTER", "CREATE", "GRANT", "REVOKE"}
+	for _, keyword := range dangerousKeywords {
+		if strings.Contains(sqlUpper, keyword) {
+			utils.WriteError(w, http.StatusBadRequest, "Dangerous SQL operations are not allowed")
+			return
+		}
+	}
+
+	if !strings.Contains(sqlUpper, "ACCOUNTS") {
+		utils.WriteError(w, http.StatusBadRequest, "SQL query must target the accounts table")
+		return
+	}
+
+	if !strings.Contains(sqlUpper, "WHERE") || !strings.Contains(sqlUpper, strconv.Itoa(accountID)) {
+		utils.WriteError(w, http.StatusBadRequest, "SQL query must include WHERE clause with account ID")
+		return
+	}
+
+	ctx, cancel := utils.NewDBContext()
+	defer cancel()
+
+	var exists bool
+	err = database.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM accounts WHERE id = ?)", accountID).Scan(&exists)
+	if err != nil || !exists {
+		utils.WriteError(w, http.StatusNotFound, "Account not found")
+		return
+	}
+
+	result, err := database.DB.ExecContext(ctx, req.SQL)
+	if err != nil {
+		if utils.HandleDBError(w, err) {
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, "Error executing SQL: "+err.Error())
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	response := map[string]interface{}{
+		"rowsAffected": rowsAffected,
+		"message":      "SQL executed successfully",
+	}
+
+	utils.WriteSuccess(w, http.StatusOK, "SQL executed successfully", response)
+}
